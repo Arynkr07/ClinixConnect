@@ -1,0 +1,156 @@
+/*
+ * JeevanDoot / SwasthyaLink design tokens.
+ *
+ * Colors are stored as space-separated RGB triplets so Tailwind utilities can
+ * consume them through the `rgb(var(--jd-x) / <alpha-value>)` pattern, which
+ * keeps opacity modifiers (e.g. `bg-primary/40`) working in both themes.
+ * Anywhere the variables are referenced directly in CSS, wrap with `rgb(...)`.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Brand */
+  --jd-primary: 0 70 57;
+  --jd-on-primary: 255 255 255;
+  --jd-primary-container: 27 94 79;
+  --jd-on-primary-container: 149 213 194;
+  --jd-primary-fixed: 175 240 220;
+  --jd-on-primary-fixed: 0 32 25;
+  --jd-primary-fixed-dim: 147 211 192;
+  --jd-on-primary-fixed-variant: 5 81 66;
+  --jd-inverse-primary: 147 211 192;
+
+  --jd-secondary: 124 88 0;
+  --jd-on-secondary: 255 255 255;
+  --jd-secondary-container: 253 191 64;
+  --jd-on-secondary-container: 111 78 0;
+  --jd-secondary-fixed: 255 222 168;
+  --jd-on-secondary-fixed: 39 25 0;
+  --jd-secondary-fixed-dim: 250 188 62;
+  --jd-on-secondary-fixed-variant: 94 66 0;
+
+  --jd-tertiary: 114 32 0;
+  --jd-on-tertiary: 255 255 255;
+  --jd-tertiary-container: 147 53 16;
+  --jd-on-tertiary-container: 255 183 160;
+  --jd-tertiary-fixed: 255 219 208;
+  --jd-on-tertiary-fixed: 57 12 0;
+  --jd-tertiary-fixed-dim: 255 181 157;
+  --jd-on-tertiary-fixed-variant: 130 40 3;
+
+  --jd-error: 186 26 26;
+  --jd-on-error: 255 255 255;
+  --jd-error-container: 255 218 214;
+  --jd-on-error-container: 147 0 10;
+
+  /* Neutral surfaces */
+  --jd-background: 249 246 237;
+  --jd-on-background: 30 30 30;
+  --jd-surface: 249 246 237;
+  --jd-on-surface: 30 30 30;
+  --jd-surface-dim: 232 229 220;
+  --jd-surface-bright: 249 246 237;
+  --jd-surface-container-lowest: 255 255 255;
+  --jd-surface-container-low: 243 240 231;
+  --jd-surface-container: 236 233 223;
+  --jd-surface-container-high: 228 225 214;
+  --jd-surface-container-highest: 221 218 207;
+  --jd-surface-variant: 228 225 214;
+  --jd-on-surface-variant: 90 90 90;
+  --jd-outline: 138 138 138;
+  --jd-outline-variant: 229 231 235;
+  --jd-inverse-surface: 51 48 36;
+  --jd-inverse-on-surface: 247 240 222;
+  --jd-surface-tint: 40 105 89;
+  --jd-coral: 232 115 74;
+
+  /* Status (success / warning) */
+  --jd-success: 30 107 60;
+  --jd-on-success: 255 255 255;
+  --jd-success-container: 217 240 224;
+  --jd-on-success-container: 10 61 31;
+  --jd-warning: 178 106 0;
+  --jd-on-warning: 255 255 255;
+  --jd-warning-container: 255 222 199;
+  --jd-on-warning-container: 61 26 0;
+
+  /* Elevation */
+  --jd-shadow-1: 0px 4px 12px rgba(27, 94, 79, 0.08);
+  --jd-shadow-2: 0px 8px 24px rgba(27, 94, 79, 0.12);
+  --jd-shadow-3: 0px 12px 32px rgba(27, 94, 79, 0.16);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Brand (green accent retained) */
+  --jd-primary: 147 211 192;
+  --jd-on-primary: 0 56 45;
+  --jd-primary-container: 27 94 79;
+  --jd-on-primary-container: 175 240 220;
+  --jd-primary-fixed: 175 240 220;
+  --jd-on-primary-fixed: 0 32 25;
+  --jd-primary-fixed-dim: 147 211 192;
+  --jd-on-primary-fixed-variant: 159 227 205;
+  --jd-inverse-primary: 0 70 57;
+
+  --jd-secondary: 250 188 62;
+  --jd-on-secondary: 61 42 0;
+  --jd-secondary-container: 94 66 0;
+  --jd-on-secondary-container: 255 222 168;
+  --jd-secondary-fixed: 255 222 168;
+  --jd-on-secondary-fixed: 39 25 0;
+  --jd-secondary-fixed-dim: 250 188 62;
+  --jd-on-secondary-fixed-variant: 255 222 168;
+
+  --jd-tertiary: 255 181 157;
+  --jd-on-tertiary: 77 26 0;
+  --jd-tertiary-container: 147 53 16;
+  --jd-on-tertiary-container: 255 183 160;
+  --jd-tertiary-fixed: 255 219 208;
+  --jd-on-tertiary-fixed: 57 12 0;
+  --jd-tertiary-fixed-dim: 255 181 157;
+  --jd-on-tertiary-fixed-variant: 255 183 160;
+
+  --jd-error: 255 180 171;
+  --jd-on-error: 105 0 5;
+  --jd-error-container: 147 0 10;
+  --jd-on-error-container: 255 218 214;
+
+  /* Neutral surfaces */
+  --jd-background: 18 18 18;
+  --jd-on-background: 243 244 246;
+  --jd-surface: 18 18 18;
+  --jd-on-surface: 243 244 246;
+  --jd-surface-dim: 24 24 24;
+  --jd-surface-bright: 42 42 42;
+  --jd-surface-container-lowest: 30 30 30;
+  --jd-surface-container-low: 35 35 35;
+  --jd-surface-container: 24 24 24;
+  --jd-surface-container-high: 40 40 40;
+  --jd-surface-container-highest: 46 46 46;
+  --jd-surface-variant: 46 46 46;
+  --jd-on-surface-variant: 176 179 184;
+  --jd-outline: 138 138 138;
+  --jd-outline-variant: 55 65 81;
+  --jd-inverse-surface: 224 224 224;
+  --jd-inverse-on-surface: 26 26 26;
+  --jd-surface-tint: 147 211 192;
+  --jd-coral: 232 115 74;
+
+  /* Status (success / warning) */
+  --jd-success: 122 210 156;
+  --jd-on-success: 0 57 28;
+  --jd-success-container: 11 90 49;
+  --jd-on-success-container: 156 229 182;
+  --jd-warning: 245 185 66;
+  --jd-on-warning: 61 41 0;
+  --jd-warning-container: 122 74 0;
+  --jd-on-warning-container: 255 223 173;
+
+  /* Elevation (deeper in dark mode) */
+  --jd-shadow-1: 0px 4px 12px rgba(0, 0, 0, 0.4);
+  --jd-shadow-2: 0px 8px 24px rgba(0, 0, 0, 0.45);
+  --jd-shadow-3: 0px 12px 32px rgba(0, 0, 0, 0.5);
+}

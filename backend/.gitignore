@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Uploads (keep the directory, ignore contents)
+uploads/*
+!uploads/.gitkeep
+
+# Editor
+.vscode/*
+.idea
+.DS_Store

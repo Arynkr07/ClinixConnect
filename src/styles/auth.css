@@ -1,0 +1,11 @@
+/* Auth-specific styles (login pages) */
+
+.bg-pattern {
+  background-image: radial-gradient(#1b5e4f 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+  opacity: 0.05;
+}
+
+.input-focus-ring:focus {
+  box-shadow: 0 0 0 3px rgba(27, 94, 79, 0.15);
+}

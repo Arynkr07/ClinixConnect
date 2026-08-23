@@ -1,0 +1,62 @@
+/* Global base styles for the JeevanDoot platform */
+@import './variables.css';
+
+/* Map / geographic surfaces */
+.bg-map-terrain {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(27, 94, 79, 0.08) 0, transparent 40%),
+    radial-gradient(circle at 75% 70%, rgba(224, 115, 74, 0.08) 0, transparent 45%),
+    linear-gradient(135deg, #eef3e8 0%, #dce7d4 45%, #f2e8d8 100%);
+}
+
+.map-grid {
+  background-image:
+    linear-gradient(rgba(27, 94, 79, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 94, 79, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.video-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Illustration side panel on auth pages */
+.illustration-side {
+  background: linear-gradient(160deg, rgb(var(--jd-primary-container)) 0%, rgb(var(--jd-primary)) 55%, #0a3d33 100%);
+}
+
+/* Slow pulsing marker */
+@keyframes jd-pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: jd-pulse-slow 2s ease-in-out infinite;
+}
+
+/* Dark theme overrides for illustration panel */
+.dark .illustration-side {
+  background: linear-gradient(160deg, #0f2e26 0%, #1b5e4f 55%, #0a3d33 100%);
+}
+
+.dark .bg-map-terrain {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(147, 211, 192, 0.1) 0, transparent 40%),
+    radial-gradient(circle at 75% 70%, rgba(255, 181, 157, 0.08) 0, transparent 45%),
+    linear-gradient(135deg, #242a20 0%, #1c241c 45%, #2a241b 100%);
+}
+
+.dark .map-grid {
+  background-image:
+    linear-gradient(rgba(147, 211, 192, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 211, 192, 0.08) 1px, transparent 1px);
+}

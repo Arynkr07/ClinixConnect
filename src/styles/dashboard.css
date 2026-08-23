@@ -1,0 +1,49 @@
+/* Dashboard-specific styles (KPI cards, bento grids, tables) */
+
+.kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 8px 24px rgba(27, 94, 79, 0.12);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+.audit-table-row:hover {
+  background-color: rgba(244, 238, 219, 0.5);
+  transition: all 0.2s ease;
+}
+
+.dark .audit-table-row:hover {
+  background-color: rgba(35, 35, 35, 0.6);
+}
+
+.funnel-stage {
+  clip-path: polygon(0% 0%, 100% 0%, 92% 100%, 8% 100%);
+  margin-bottom: 4px;
+}
+
+.bento-card {
+  background: rgb(var(--jd-surface-container-lowest));
+  border-radius: 1rem;
+  box-shadow: var(--jd-shadow-1);
+  padding: 1.5rem;
+  transition: transform 0.2s ease;
+}
+
+.bento-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--jd-shadow-2);
+}
