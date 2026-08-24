@@ -196,24 +196,20 @@ export default function BookAppointment() {
       const apt = await appointmentService.create(payload);
       setCreatedAppointment(apt);
       setStep(3); // Confirmation screen
-      notify({ type: 'success', message: t('booking.bookingSuccess') });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      notify({ type: 'success', message: `${t('booking.bookingSuccess')} Redirecting to My Appointments...` });
 
-      // Automatically open the Google Calendar event link in a new tab
-      try {
-        const calLink = apt.googleCalendarLink || generateGoogleCalendarLink(apt);
-        if (calLink) {
-          window.open(calLink, '_blank', 'noopener,noreferrer');
-        }
-      } catch (calErr) {
-        console.warn('[BookAppointment] Google Calendar auto-open fallback:', calErr);
-      }
-
-      // Also offer ICS file download for offline calendar apps (Apple/Outlook)
+      // Offer ICS file download for offline calendar apps
       try {
         downloadIcsFile(apt);
       } catch (icsErr) {
         console.warn('[BookAppointment] ICS auto-download fallback:', icsErr);
       }
+
+      // Auto-navigate to My Appointments page so user lands on appointments list
+      setTimeout(() => {
+        navigate('/patient/appointments', { replace: true });
+      }, 2500);
     } catch (err) {
       notify({ type: 'error', message: err.message || 'Booking failed due to a slot conflict.' });
     } finally {
