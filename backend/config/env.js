@@ -19,7 +19,7 @@ export const env = {
   SMTP_SERVER: process.env.SMTP_SERVER || 'smtp.gmail.com',
   SMTP_PORT: Number(process.env.SMTP_PORT) || 587,
   SMTP_EMAIL: process.env.SMTP_EMAIL || 'projectwork1709@gmail.com',
-  SMTP_APP_PASSWORD: process.env.SMTP_APP_PASSWORD || '',
+  SMTP_APP_PASSWORD: process.env.SMTP_APP_PASSWORD || 'hzhdrepukpogtdow',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN || '',
