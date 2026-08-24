@@ -208,13 +208,25 @@ export const createAppointment = asyncHandler(async (req, res) => {
     patientDoc.personalInfo.email = req.body.patientEmail;
   }
 
-  const clash = await Appointment.findOne({ doctor: doctorDoc._id, date: new Date(String(date).slice(0, 10)), startTime, status: 'upcoming' });
-  if (clash) {
-    throw new ApiError(409, 'The doctor is already booked at this time.');
+  const dateObj = new Date(String(date).slice(0, 10));
+  const startOfDay = new Date(dateObj);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const endOfDay = new Date(dateObj);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  const clash = await Appointment.findOne({
+    doctor: doctorDoc._id,
+    date: { $gte: startOfDay, $lte: endOfDay },
+    startTime,
+    status: 'upcoming',
+  });
+
+  if (clash && clash.patient?.toString() !== patientDoc._id.toString()) {
+    throw new ApiError(409, `Dr. ${doctorDoc.name} is already booked at ${startTime} on ${date}. Please choose another open time slot.`);
   }
 
   // Remove active slot hold
-  await SlotHold.findOneAndDelete({ doctor: doctorDoc._id, date: new Date(String(date).slice(0, 10)), startTime });
+  await SlotHold.findOneAndDelete({ doctor: doctorDoc._id, startTime });
 
   // Generate Google Calendar Web Link & OAuth Calendar Event
   const { calendarService } = await import('../services/calendar.service.js');

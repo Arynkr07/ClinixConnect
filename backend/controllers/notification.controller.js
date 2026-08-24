@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { success, created, noContent } from '../utils/response.js';
@@ -10,7 +11,13 @@ import { notificationService } from '../services/notification.service.js';
  */
 export const getNotifications = asyncHandler(async (req, res) => {
   const { unreadOnly, page = 1, limit = 20 } = req.query;
-  const query = { user: req.user._id };
+  const targetUser = req.user?._id;
+
+  if (!targetUser || !mongoose.isValidObjectId(targetUser)) {
+    return success(res, [], { page: 1, limit: 20, total: 0, unread: 0, totalPages: 0 });
+  }
+
+  const query = { user: targetUser };
   if (unreadOnly === 'true') query.read = false;
 
   const pageNum = Math.max(1, Number(page) || 1);

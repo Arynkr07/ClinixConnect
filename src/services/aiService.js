@@ -146,7 +146,17 @@ export const aiService = {
    * Pre-visit summary generation
    */
   async generatePreVisitSummary(symptoms, severity = 'Moderate') {
-    // 1. Try direct Gemini API if key is present on frontend
+    // 1. Try backend API first (which uses secure server-side LLM & fallback)
+    if (!isMockMode()) {
+      try {
+        const { data } = await api.post('/ai/pre-visit-summary', { symptoms, severity });
+        if (data && (data.urgency || data.chiefComplaint)) return data;
+      } catch (err) {
+        console.warn('[aiService] backend AI call warning:', err.message);
+      }
+    }
+
+    // 2. Direct client Gemini call if API key present
     if (GEMINI_API_KEY) {
       try {
         const prompt = `Analyse these symptoms and return: urgency level (Low / Medium / High), chief complaint, and three suggested questions for the doctor. Symptoms: ${symptoms}
@@ -168,27 +178,17 @@ Return ONLY valid JSON format:
               suggestedQuestions: Array.isArray(parsed.suggestedQuestions) ? parsed.suggestedQuestions.slice(0, 3) : [],
               rawSymptoms: symptoms,
               generatedAt: new Date().toISOString(),
-              provider: 'Google Gemini 1.5 Flash (Live AI)',
+              provider: 'Google Gemini (Live AI)',
             };
           }
         }
-      } catch (e) {
-        console.warn('Direct Gemini call failed:', e);
+      } catch {
+        /* ignore */
       }
     }
 
-    // 2. Try backend API
-    if (!isMockMode()) {
-      try {
-        const { data } = await api.post('/ai/pre-visit-summary', { symptoms, severity });
-        if (data) return data;
-      } catch (err) {
-        console.warn('[aiService] backend API call failed:', err.message);
-      }
-    }
-
-    // 3. Fallback
-    await sleep(400);
+    // 3. Guaranteed local clinical triage fallback
+    await sleep(200);
     return generateLocalPreVisitSummary(symptoms, severity);
   },
 
