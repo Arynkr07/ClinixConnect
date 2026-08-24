@@ -1,4 +1,13 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load .env file from backend root directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config(); // Fallback to current working directory .env if applicable
 
 const bool = (value, fallback = false) =>
   value === undefined ? fallback : String(value).toLowerCase() === 'true';
@@ -6,8 +15,7 @@ const bool = (value, fallback = false) =>
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT) || 5000,
-  MONGODB_URI:
-    process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/clinixconnect',
+  MONGODB_URI: process.env.MONGODB_URI || '',
   JWT_SECRET: process.env.JWT_SECRET || 'clinixconnect-dev-secret-key-2026',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   BCRYPT_ROUNDS: Number(process.env.BCRYPT_ROUNDS) || 10,
@@ -18,8 +26,8 @@ export const env = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   SMTP_SERVER: process.env.SMTP_SERVER || 'smtp.gmail.com',
   SMTP_PORT: Number(process.env.SMTP_PORT) || 587,
-  SMTP_EMAIL: process.env.SMTP_EMAIL || 'projectwork1709@gmail.com',
-  SMTP_APP_PASSWORD: process.env.SMTP_APP_PASSWORD || 'hzhdrepukpogtdow',
+  SMTP_EMAIL: process.env.SMTP_EMAIL || '',
+  SMTP_APP_PASSWORD: process.env.SMTP_APP_PASSWORD || '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN || '',
