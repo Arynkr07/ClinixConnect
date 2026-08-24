@@ -161,6 +161,20 @@ export default function DoctorManagement() {
     load();
   };
 
+  const handleDeleteDoctor = async (doctor) => {
+    const confirmDelete = window.confirm(`Are you sure you want to permanently delete Dr. ${doctor.name} and their user account from the system?`);
+    if (!confirmDelete) return;
+
+    try {
+      await adminService.deleteDoctor(doctor.id || doctor.doctorId || doctor._id);
+      setDoctors((prev) => prev.filter((d) => d.id !== doctor.id && d.doctorId !== doctor.doctorId));
+      notify({ type: 'success', message: `Dr. ${doctor.name} has been removed from the system.` });
+      load();
+    } catch (err) {
+      notify({ type: 'error', message: err?.response?.data?.message || err?.message || 'Could not delete doctor.' });
+    }
+  };
+
 
 
   const handleLeaveSubmit = async (e) => {
@@ -591,6 +605,15 @@ export default function DoctorManagement() {
                               {d.verification || 'Verified'}
                             </Badge>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            icon="delete"
+                            className="text-error hover:bg-error-container/20 border-error/40"
+                            onClick={() => handleDeleteDoctor(d)}
+                          >
+                            Remove Doctor
+                          </Button>
                         </div>
                       </td>
                     </tr>

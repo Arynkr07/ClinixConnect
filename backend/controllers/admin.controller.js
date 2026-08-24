@@ -136,18 +136,25 @@ export const rejectDoctor = asyncHandler(async (req, res) => {
  */
 export const deleteDoctor = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const doc = await Doctor.findOne(doctorQuery(id));
-  if (!doc) throw new ApiError(404, 'Doctor profile not found.');
+  const isObjId = Boolean(id && id.match(/^[0-9a-fA-F]{24}$/));
 
-  const doctorName = doc.name;
-
-  // Delete the linked User account too
-  if (doc.user) {
-    await User.findByIdAndDelete(doc.user);
+  let doc = await Doctor.findOne(doctorQuery(id));
+  if (!doc && isObjId) {
+    const userDoc = await User.findById(id);
+    if (userDoc && userDoc.role === 'doctor') {
+      doc = await Doctor.findOne({ user: userDoc._id });
+      await User.findByIdAndDelete(userDoc._id);
+    }
   }
-  await Doctor.findByIdAndDelete(doc._id);
 
-  return success(res, { id, message: `Doctor ${doctorName} and their account have been removed from the system.` });
+  if (doc) {
+    const doctorName = doc.name || 'Doctor';
+    if (doc.user) await User.findByIdAndDelete(doc.user);
+    await Doctor.findByIdAndDelete(doc._id);
+    return success(res, { id, message: `Doctor ${doctorName} and their account have been permanently removed.` });
+  }
+
+  return success(res, { id, message: 'Doctor profile removed.' });
 });
 
 /**

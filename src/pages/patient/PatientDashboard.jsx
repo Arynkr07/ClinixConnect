@@ -49,6 +49,10 @@ export default function PatientDashboard() {
       try {
         const raw = localStorage.getItem('jd_med_reminders_status');
         if (raw) setTakenDoses(JSON.parse(raw));
+
+        const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+        const deletedSet = new Set(rawDeleted ? JSON.parse(rawDeleted) : []);
+        setDailyMedications((prev) => prev.filter((m) => !deletedSet.has(m.id)));
       } catch {
         /* ignore */
       }
@@ -79,6 +83,27 @@ export default function PatientDashboard() {
       }
       return updated;
     });
+  };
+
+  const handleDeleteReminder = (id, medName = 'Reminder') => {
+    if (!window.confirm(`Remove medication reminder for ${medName}?`)) return;
+    try {
+      const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+      const deletedList = rawDeleted ? JSON.parse(rawDeleted) : [];
+      if (!deletedList.includes(id)) {
+        deletedList.push(id);
+        localStorage.setItem('jd_deleted_reminders', JSON.stringify(deletedList));
+      }
+      const customReminders = JSON.parse(localStorage.getItem('jd_custom_med_reminders') || '[]');
+      const updatedCustom = customReminders.filter((c) => c.id !== id);
+      localStorage.setItem('jd_custom_med_reminders', JSON.stringify(updatedCustom));
+
+      setDailyMedications((prev) => prev.filter((med) => med.id !== id));
+      window.dispatchEvent(new window.CustomEvent('jd_med_status_updated'));
+      notify({ type: 'info', message: `Removed ${medName} reminder.` });
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleCancel = async (id) => {
@@ -179,7 +204,9 @@ export default function PatientDashboard() {
           });
         }
 
-        setDailyMedications(items);
+        const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+        const deletedSet = new Set(rawDeleted ? JSON.parse(rawDeleted) : []);
+        setDailyMedications(items.filter((m) => !deletedSet.has(m.id)));
       } catch (err) {
         console.error('Failed to load real medications:', err);
       }
@@ -451,20 +478,30 @@ export default function PatientDashboard() {
                           <p className="text-body-sm text-on-surface-variant mt-1">{med.dose}</p>
                           <p className="text-label-xs text-outline mt-1 italic">{med.instruction}</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleDose(med.id)}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                            isTaken
-                              ? 'bg-success text-on-success'
-                              : 'bg-surface-container-high text-on-surface-variant hover:bg-primary hover:text-on-primary'
-                          }`}
-                          title={isTaken ? 'Dose marked as taken' : 'Click to mark as taken'}
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            {isTaken ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReminder(med.id, med.name)}
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-outline hover:text-error hover:bg-error-container/20 transition-all"
+                            title="Remove Reminder"
+                          >
+                            <span className="material-symbols-outlined text-xl">delete</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleDose(med.id, med.name)}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                              isTaken
+                                ? 'bg-success text-on-success'
+                                : 'bg-surface-container-high text-on-surface-variant hover:bg-primary hover:text-on-primary'
+                            }`}
+                            title={isTaken ? 'Dose marked as taken' : 'Click to mark as taken'}
+                          >
+                            <span className="material-symbols-outlined text-xl">
+                              {isTaken ? 'check_circle' : 'radio_button_unchecked'}
+                            </span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

@@ -137,7 +137,10 @@ export default function MedicationTracker() {
           });
         }
 
-        setSchedule(items);
+        const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+        const deletedSet = new Set(rawDeleted ? JSON.parse(rawDeleted) : []);
+
+        setSchedule(items.filter((m) => !deletedSet.has(m.id)));
       } catch (err) {
         console.error('Failed to load medication schedule:', err);
       } finally {
@@ -152,6 +155,10 @@ export default function MedicationTracker() {
       try {
         const raw = localStorage.getItem('jd_med_reminders_status');
         if (raw) setTakenStatus(JSON.parse(raw));
+
+        const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+        const deletedSet = new Set(rawDeleted ? JSON.parse(rawDeleted) : []);
+        setSchedule((prev) => prev.filter((item) => !deletedSet.has(item.id)));
       } catch {
         /* ignore */
       }
@@ -163,6 +170,30 @@ export default function MedicationTracker() {
       window.removeEventListener('storage', handleSync);
     };
   }, []);
+
+  const handleDeleteReminder = (id, medName) => {
+    if (!window.confirm(`Are you sure you want to remove the reminder for ${medName}?`)) return;
+
+    try {
+      const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+      const deletedList = rawDeleted ? JSON.parse(rawDeleted) : [];
+      if (!deletedList.includes(id)) {
+        deletedList.push(id);
+        localStorage.setItem('jd_deleted_reminders', JSON.stringify(deletedList));
+      }
+
+      const customReminders = JSON.parse(localStorage.getItem('jd_custom_med_reminders') || '[]');
+      const updatedCustom = customReminders.filter((c) => c.id !== id);
+      localStorage.setItem('jd_custom_med_reminders', JSON.stringify(updatedCustom));
+
+      window.dispatchEvent(new window.CustomEvent('jd_med_status_updated'));
+    } catch (e) {
+      console.warn('Failed to delete reminder:', e);
+    }
+
+    setSchedule((prev) => prev.filter((item) => item.id !== id));
+    notify({ type: 'info', message: `Removed reminder for ${medName}.` });
+  };
 
   const toggleDose = (id, medName) => {
     setTakenStatus((prev) => {
@@ -292,16 +323,27 @@ export default function MedicationTracker() {
                   <p className="text-body-md text-on-surface-variant font-medium mb-1">{item.instructions}</p>
                   <p className="text-label-sm text-outline mb-4">Reason: {item.purpose}</p>
 
-                  <div className="border-t border-outline-variant/30 pt-3 flex items-center justify-between gap-2">
+                  <div className="border-t border-outline-variant/30 pt-3 flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-label-sm text-on-surface-variant">By {item.prescribedBy}</span>
-                    <Button
-                      size="sm"
-                      variant={isTaken ? 'outline' : 'primary'}
-                      icon={isTaken ? 'check_circle' : 'circle'}
-                      onClick={() => toggleDose(item.id, item.medicine)}
-                    >
-                      {isTaken ? 'Dose Taken' : 'Mark as Taken'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon="delete"
+                        className="text-error hover:bg-error-container/20 border-error/40 px-2.5"
+                        onClick={() => handleDeleteReminder(item.id, item.medicine)}
+                      >
+                        Remove
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={isTaken ? 'outline' : 'primary'}
+                        icon={isTaken ? 'check_circle' : 'circle'}
+                        onClick={() => toggleDose(item.id, item.medicine)}
+                      >
+                        {isTaken ? 'Dose Taken' : 'Mark as Taken'}
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               );
