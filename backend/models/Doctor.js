@@ -16,6 +16,8 @@ const doctorSchema = new mongoose.Schema(
     },
     name: { type: String, required: true },
     specialization: { type: String, default: 'General Medicine' },
+    shiftType: { type: String, enum: ['Day Shift', 'Night Shift', 'Custom'], default: 'Day Shift' },
+    verification: { type: String, default: 'Pending' },
     hospital: { type: String, default: '' },
     experience: { type: Number, default: 0 }, // years
     email: { type: String, default: '' },

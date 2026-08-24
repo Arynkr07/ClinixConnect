@@ -76,7 +76,8 @@ export const getPatientById = asyncHandler(async (req, res) => {
   }
 
   if (!patient) {
-    const idCode = id.startsWith('JD-') ? id : `JD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { generatePatientId } = await import('../utils/generateId.js');
+    const idCode = generatePatientId(id || 'Patient', new Date());
     patient = {
       id: idCode,
       patientId: idCode,

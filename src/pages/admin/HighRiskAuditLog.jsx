@@ -12,6 +12,8 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useNotification } from '../../hooks/useNotification';
 import { adminSidebarItems } from './adminNav';
 
+import { generatePatientId } from '../../utils/helpers';
+
 export default function HighRiskAuditLog() {
   const { t } = useTranslation();
   const { notify } = useNotification();
@@ -110,7 +112,8 @@ export default function HighRiskAuditLog() {
               <tbody>
                 {filtered.map((log, i) => {
                   const ts = log.timestamp || (log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Recent');
-                  const pid = log.patientId || log.patient || log.id || 'N/A';
+                  const rawPid = log.patientId || log.patient || log.id;
+                  const pid = (!rawPid || rawPid.startsWith('JD-')) ? generatePatientId(log.patientName || 'Patient') : rawPid;
                   const riskLevel = log.risk || log.severity || 'High';
                   const staff = log.handledBy || log.actor || 'Assigned Physician';
                   const outcomeStatus = log.outcome || (log.status === 'completed' ? 'Resolved' : 'Pending');

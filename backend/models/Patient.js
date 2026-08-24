@@ -128,7 +128,7 @@ const patientSchema = new mongoose.Schema(
 patientSchema.pre('save', async function ensureId(next) {
   if (!this.patientId) {
     const { generatePatientId } = await import('../utils/generateId.js');
-    this.patientId = generatePatientId();
+    this.patientId = generatePatientId(this.personalInfo?.fullName || this.name, this.createdAt || new Date());
   }
   return next();
 });

@@ -11,7 +11,7 @@ const isValidRole = (role) =>
   Object.values(ROLES).includes(role);
 
 const isPublicRole = (role) =>
-  [ROLES.ADMIN, ROLES.DOCTOR, ROLES.PATIENT, ROLES.NGO, ROLES.GOVERNMENT].includes(role);
+  [ROLES.ADMIN, ROLES.DOCTOR, ROLES.PATIENT].includes(role);
 
 /**
  * POST /auth/login
@@ -33,6 +33,14 @@ export const login = asyncHandler(async (req, res) => {
   }
   if (!user.isActive) {
     throw new ApiError(403, 'This account has been deactivated. Contact support.');
+  }
+
+  // Enforce approval checks for Doctor and Admin roles
+  if (user.role === 'doctor' && user.isApproved === false) {
+    throw new ApiError(403, 'Your Doctor account is pending approval by the Admin. Please wait for approval before signing in.');
+  }
+  if (user.role === 'admin' && user.isApproved === false && !user.isMainAdmin) {
+    throw new ApiError(403, 'Your Admin account is pending approval by the Default Main Admin.');
   }
 
   user.lastLoginAt = new Date();
@@ -94,10 +102,13 @@ export const login = asyncHandler(async (req, res) => {
  * Public registration is limited to non-admin roles.
  */
 export const register = asyncHandler(async (req, res) => {
-  const { role, name, email, password, phone, profile } = req.body || {};
+  const { role, name, email, password, phone, profile, specialization, shiftType, workingHours } = req.body || {};
 
   if (!role || !isValidRole(role)) {
-    throw new ApiError(400, 'A valid role (patient, doctor, admin, ngo, government) is required.');
+    throw new ApiError(400, 'A valid role (patient, doctor) is required.');
+  }
+  if (role === 'admin') {
+    throw new ApiError(403, 'Public registration for admin is disabled. Please log in with the main admin account (admin@clinixconnect.org).');
   }
   if (!name || !email || !password) {
     throw new ApiError(400, 'Name, email and password are required.');
@@ -111,35 +122,59 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(409, 'An account with this email already exists.');
   }
 
+  const isDefaultAdmin = role === 'admin' && (email.toLowerCase() === 'admin@clinixconnect.org' || email.toLowerCase() === 'admin@jeevandoot.org');
+  const isApproved = role === 'patient' || isDefaultAdmin;
+
   const user = await User.create({
     role,
     name,
     email: email.toLowerCase(),
     password,
     phone: phone || '',
+    isApproved,
+    isMainAdmin: isDefaultAdmin,
   });
 
   // Automatically create linked Doctor or Patient profile in MongoDB
   try {
     if (role === 'doctor') {
+      const chosenShift = shiftType || profile?.shiftType || 'Day Shift';
+      const defaultHours = chosenShift === 'Night Shift' ? { start: '21:00', end: '05:00' } : { start: '09:00', end: '17:00' };
+
       const { Doctor } = await import('../models/index.js');
       await Doctor.create({
         user: user._id,
         doctorId: `dr-${Math.floor(1000 + Math.random() * 9000)}`,
         name: user.name,
-        specialization: profile?.specialization || profile?.specialty || 'General Medicine',
+        specialization: specialization || profile?.specialization || profile?.specialty || 'General Medicine',
+        shiftType: chosenShift,
         email: user.email,
         phone: user.phone || '',
-        workingHours: { start: '09:00', end: '17:00' },
+        workingHours: workingHours || profile?.workingHours || defaultHours,
         slotDuration: 30,
         leaveDays: [],
-        availability: { status: 'online' },
+        availability: { status: 'offline' },
+        verification: 'Pending',
       });
+
+      // Trigger email alert to Default Main Admin notifying them of pending doctor registration
+      try {
+        const { emailService } = await import('../services/email.service.js');
+        await emailService.sendDoctorPendingApprovalAdminAlert({
+          adminEmail: 'admin@clinixconnect.org',
+          doctorName: user.name,
+          doctorEmail: user.email,
+          doctorSpecialization: specialization || profile?.specialization || profile?.specialty || 'General Medicine',
+          phone: user.phone,
+        });
+      } catch (emailErr) {
+        console.warn('[auth.register] Admin email notification notice:', emailErr.message);
+      }
     } else if (role === 'patient') {
-      const { Patient } = await import('../models/index.js');
+      const { generatePatientId } = await import('../utils/generateId.js');
       await Patient.create({
         user: user._id,
-        patientId: `JD-${Math.floor(1000 + Math.random() * 9000)}`,
+        patientId: generatePatientId(user.name, user.createdAt || new Date()),
         personalInfo: {
           fullName: user.name,
           email: user.email,
@@ -149,9 +184,39 @@ export const register = asyncHandler(async (req, res) => {
         vitals: { bp: '120/80', temp: '98.6°F', weight: 60, pulse: 72 },
         queue: { risk: 'low', status: 'waiting', reason: 'Initial Registration' },
       });
+    } else if (role === 'admin' && !isDefaultAdmin) {
+      // Trigger email alert to Default Main Admin notifying them of a pending admin registration
+      try {
+        const { emailService: es } = await import('../services/email.service.js');
+        if (typeof es.sendAdminPendingApprovalAlert === 'function') {
+          await es.sendAdminPendingApprovalAlert({
+            adminEmail: 'admin@clinixconnect.org',
+            newAdminName: user.name,
+            newAdminEmail: user.email,
+            phone: user.phone,
+          });
+        }
+      } catch (emailErr) {
+        console.warn('[auth.register] Admin approval email notice:', emailErr.message);
+      }
     }
   } catch (e) {
     console.warn('[auth.register] profile linking skipped:', e.message);
+  }
+
+  // For unapproved admin or doctor accounts, return 202 Pending without a JWT.
+  // They cannot log in until the Main Admin approves their account.
+  if (!isApproved && (role === 'admin' || role === 'doctor')) {
+    const pendingMsg =
+      role === 'admin'
+        ? 'Admin account registered! Your profile is pending approval by the Default Main Admin (admin@clinixconnect.org). You will be notified once approved.'
+        : 'Doctor account registered! Your profile is pending approval by the Admin. You will be notified once approved.';
+    return success(
+      res,
+      { pending: true, user: { id: user._id, name: user.name, email: user.email, role, isApproved: false } },
+      { message: pendingMsg },
+      202
+    );
   }
 
   const token = authService.signAccessToken(user);

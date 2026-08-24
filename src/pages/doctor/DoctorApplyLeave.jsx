@@ -12,6 +12,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { doctorService } from '../../services/doctorService';
 import { doctorSidebarItems } from './doctorNav';
 
+import { DOCTOR_SHIFTS } from '../../utils/constants';
+
 export default function DoctorApplyLeave() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -28,23 +30,41 @@ export default function DoctorApplyLeave() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Shift Change Request State
+  const [requestedShift, setRequestedShift] = useState('Night Shift');
+  const [shiftReason, setShiftReason] = useState('');
+  const [submittingShift, setSubmittingShift] = useState(false);
+  const [shiftRequests, setShiftRequests] = useState([]);
+
   const loadRequests = useCallback(async () => {
     try {
-      const all = await doctorService.getLeaveRequests();
+      const [allLeaves, allShifts] = await Promise.all([
+        doctorService.getLeaveRequests(),
+        doctorService.getShiftRequests(),
+      ]);
       const myId = user?.doctorId || user?.id || 'dr-1';
       const myName = user?.name || 'Dr. Rajesh Sharma';
 
-      const filtered = Array.isArray(all)
-        ? all.filter(
+      const filteredLeaves = Array.isArray(allLeaves)
+        ? allLeaves.filter(
             (r) =>
               r.doctorId === myId ||
               r.doctorName?.toLowerCase() === myName.toLowerCase() ||
-              all.length === 1
+              allLeaves.length === 1
           )
         : [];
-      setRequests(filtered);
+      setRequests(filteredLeaves);
+
+      const filteredShifts = Array.isArray(allShifts)
+        ? allShifts.filter(
+            (r) =>
+              r.doctorId === myId ||
+              r.doctorName?.toLowerCase() === myName.toLowerCase()
+          )
+        : [];
+      setShiftRequests(filteredShifts);
     } catch (err) {
-      console.error('Failed to load leave requests:', err);
+      console.error('Failed to load leave/shift requests:', err);
     } finally {
       setLoading(false);
     }
@@ -85,6 +105,37 @@ export default function DoctorApplyLeave() {
       notify({ type: 'error', message: 'Failed to submit leave request.' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSubmitShift = async (e) => {
+    e.preventDefault();
+    setSubmittingShift(true);
+    try {
+      const start = requestedShift === 'Night Shift' ? '21:00' : '09:00';
+      const end = requestedShift === 'Night Shift' ? '05:00' : '17:00';
+
+      const res = await doctorService.requestShiftChange({
+        doctorId: user?.doctorId || user?.id || 'dr-1',
+        doctorName: user?.name || 'Dr. Rajesh Sharma',
+        doctorEmail: user?.email || '',
+        currentShift: user?.shiftType || 'Day Shift',
+        requestedShift,
+        workingHours: { start, end },
+        reason: shiftReason || 'Rotation preference',
+      });
+
+      if (res.success) {
+        notify({ type: 'success', message: 'Shift change request submitted to Admin for approval!' });
+        setShiftReason('');
+        loadRequests();
+      } else {
+        notify({ type: 'error', message: res.message || 'Could not submit shift request.' });
+      }
+    } catch {
+      notify({ type: 'error', message: 'Failed to submit shift change request.' });
+    } finally {
+      setSubmittingShift(false);
     }
   };
 
@@ -132,7 +183,7 @@ export default function DoctorApplyLeave() {
                 Reason for Leave *
               </label>
               <textarea
-                rows={4}
+                rows={3}
                 required
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -143,7 +194,7 @@ export default function DoctorApplyLeave() {
 
             <div className="bg-surface-container-low/80 p-4 rounded-xl text-label-sm text-on-surface-variant leading-relaxed border border-outline-variant/30">
               <span className="material-symbols-outlined text-primary text-base align-middle mr-1">info</span>
-              Once approved by the Admin, any scheduled patient consultations on this date will be automatically rescheduled to the next available slot and patients will be notified.
+              Once approved by Admin, scheduled patient consultations on this date will be automatically rescheduled to the next available slot and patients notified.
             </div>
 
             <Button type="submit" fullWidth loading={submitting} size="lg" icon="send">
@@ -152,49 +203,126 @@ export default function DoctorApplyLeave() {
           </form>
         </Card>
 
-        {/* MY LEAVE REQUESTS & ADMIN APPROVAL STATUS */}
-        <Card title="My Leave Requests & Admin Status" icon="history" className="lg:col-span-2">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        {/* SHIFT CHANGE APPLICATION FORM */}
+        <Card title="Request Shift Change" icon="swap_horiz" className="lg:col-span-1">
+          <form onSubmit={handleSubmitShift} className="space-y-5">
+            <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant/30 text-label-md">
+              <p className="text-on-surface-variant font-semibold">Current Shift:</p>
+              <p className="font-bold text-primary text-body-md">
+                {user?.shiftType || 'Day Shift'} ({user?.workingHours?.start || '09:00'} – {user?.workingHours?.end || '17:00'})
+              </p>
             </div>
-          ) : requests.length === 0 ? (
-            <div className="text-center py-12 text-on-surface-variant space-y-2">
-              <span className="material-symbols-outlined text-4xl opacity-40">event_available</span>
-              <p className="font-semibold text-body-lg">No leave requests submitted yet.</p>
-              <p className="text-label-md opacity-80">Use the form on the left to submit a leave request for Admin approval.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {requests.map((req) => (
-                <div
-                  key={req.id}
-                  className="p-5 rounded-2xl border border-outline-variant/30 bg-surface-container-low/50 space-y-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/30 pb-3">
-                    <div>
-                      <span className="text-label-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Leave Date</span>
-                      <span className="text-title-md font-bold text-on-surface">{req.date}</span>
-                    </div>
-                    <div>{getStatusBadge(req.status)}</div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <p className="text-label-sm font-semibold text-on-surface-variant">Reason:</p>
-                    <p className="text-body-md text-on-surface bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/20">
-                      {req.reason}
-                    </p>
-                  </div>
-
-                  <div className="text-label-xs text-on-surface-variant flex items-center justify-between pt-1">
-                    <span>Submitted on: {new Date(req.requestedAt || Date.now()).toLocaleDateString()}</span>
-                    {req.approvedAt && <span>Approved on: {new Date(req.approvedAt).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-              ))}
+            <div>
+              <label className="block text-label-lg font-semibold text-on-surface mb-2">
+                Requested Shift (8-Hour) *
+              </label>
+              <select
+                value={requestedShift}
+                onChange={(e) => setRequestedShift(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md font-bold focus:ring-2 focus:ring-primary"
+              >
+                {DOCTOR_SHIFTS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+
+            <div>
+              <label className="block text-label-lg font-semibold text-on-surface mb-2">
+                Reason for Shift Change
+              </label>
+              <textarea
+                rows={3}
+                value={shiftReason}
+                onChange={(e) => setShiftReason(e.target.value)}
+                placeholder="e.g. Prefer night shift rotation for emergency coverage..."
+                className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none text-body-md"
+              />
+            </div>
+
+            <div className="bg-surface-container-low/80 p-4 rounded-xl text-label-sm text-on-surface-variant leading-relaxed border border-outline-variant/30">
+              <span className="material-symbols-outlined text-primary text-base align-middle mr-1">info</span>
+              Shift changes require Admin approval. Upon approval, your appointment booking window for patients will be updated automatically.
+            </div>
+
+            <Button type="submit" fullWidth loading={submittingShift} variant="secondary" size="lg" icon="published_with_changes">
+              Submit Shift Request to Admin
+            </Button>
+          </form>
         </Card>
+
+        {/* MY LEAVE & SHIFT CHANGE REQUESTS & ADMIN APPROVAL STATUS */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card title="My Shift Change Requests & Admin Status" icon="swap_horiz">
+            {shiftRequests.length === 0 ? (
+              <div className="text-center py-6 text-on-surface-variant space-y-1">
+                <span className="material-symbols-outlined text-3xl opacity-40">schedule</span>
+                <p className="font-semibold text-body-md">No shift change requests submitted yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {shiftRequests.map((s) => (
+                  <div key={s.id} className="p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low/50 flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-on-surface text-body-md">Requested: {s.requestedShift}</span>
+                        <span className="text-label-sm text-on-surface-variant">({s.workingHours?.start} – {s.workingHours?.end})</span>
+                      </div>
+                      <p className="text-label-sm text-on-surface-variant mt-1">Reason: {s.reason}</p>
+                    </div>
+                    <div>{getStatusBadge(s.status)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card title="My Leave Requests & Admin Status" icon="history">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="text-center py-12 text-on-surface-variant space-y-2">
+                <span className="material-symbols-outlined text-4xl opacity-40">event_available</span>
+                <p className="font-semibold text-body-lg">No leave requests submitted yet.</p>
+                <p className="text-label-md opacity-80">Use the form on the left to submit a leave request for Admin approval.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {requests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-5 rounded-2xl border border-outline-variant/30 bg-surface-container-low/50 space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/30 pb-3">
+                      <div>
+                        <span className="text-label-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Leave Date</span>
+                        <span className="text-title-md font-bold text-on-surface">{req.date}</span>
+                      </div>
+                      <div>{getStatusBadge(req.status)}</div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-label-sm font-semibold text-on-surface-variant">Reason:</p>
+                      <p className="text-body-md text-on-surface bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/20">
+                        {req.reason}
+                      </p>
+                    </div>
+
+                    <div className="text-label-xs text-on-surface-variant flex items-center justify-between pt-1">
+                      <span>Submitted on: {new Date(req.requestedAt || Date.now()).toLocaleDateString()}</span>
+                      {req.approvedAt && <span>Approved on: {new Date(req.approvedAt).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );

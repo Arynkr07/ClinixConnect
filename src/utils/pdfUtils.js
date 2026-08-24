@@ -64,7 +64,7 @@ export const downloadConsultationSummaryPDF = (summary = {}) => {
   doc.setTextColor(...PRIMARY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
-  doc.text('JeevanDoot', marginX, 52);
+  doc.text('ClinixConnect', marginX, 52);
   doc.setTextColor(...SECONDARY);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -206,7 +206,7 @@ export const downloadConsultationSummaryPDF = (summary = {}) => {
   doc.setTextColor(...ON_SURFACE_VARIANT);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Generated electronically by JeevanDoot', marginX, pageHeight - 48);
+  doc.text('Generated electronically by ClinixConnect', marginX, pageHeight - 48);
   doc.text('Rural Community Care Platform', pageWidth - marginX, pageHeight - 48, { align: 'right' });
 
   doc.save(`ConsultationSummary_${sanitizeFileName(summary.patientId)}.pdf`);
@@ -243,7 +243,7 @@ export const downloadReportPDF = (report = {}) => {
   doc.setTextColor(...PRIMARY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
-  doc.text('JeevanDoot', marginX, 52);
+  doc.text('ClinixConnect', marginX, 52);
   doc.setTextColor(...SECONDARY);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -355,7 +355,7 @@ export const downloadReportPDF = (report = {}) => {
   doc.setTextColor(...ON_SURFACE_VARIANT);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Generated electronically by JeevanDoot', marginX, pageHeight - 48);
+  doc.text('Generated electronically by ClinixConnect', marginX, pageHeight - 48);
   doc.text('Rural Community Care Platform', pageWidth - marginX, pageHeight - 48, { align: 'right' });
 
   doc.save(`Report_${sanitizeFileName(report.id || report.type)}.pdf`);

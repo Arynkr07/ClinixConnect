@@ -31,11 +31,10 @@ export const adminService = {
 
       return {
         totalConsultations: String(appointments.length || 0),
+        upcomingAppointments: upcomingApts,
         totalConsultationsTrend: 12,
         activeDoctors: onlineDocs || (doctors || []).length || 0,
         activeDoctorsTrend: 4,
-        activeAshaWorkers: 6,
-        activeAshaWorkersTrend: 2,
         resolutionRate: '96.5%',
         resolutionRateTrend: 1,
         pendingEscalations: criticalCases || 0,
@@ -67,8 +66,6 @@ export const adminService = {
         totalConsultationsTrend: 0,
         activeDoctors: 0,
         activeDoctorsTrend: 0,
-        activeAshaWorkers: 6,
-        activeAshaWorkersTrend: 0,
         resolutionRate: '100%',
         resolutionRateTrend: 0,
         pendingEscalations: 0,
@@ -96,86 +93,209 @@ export const adminService = {
   },
 
   async verifyDoctor(id) {
+    return this.approveDoctor(id);
+  },
+
+  async approveDoctor(id) {
     if (isMockMode()) {
-      await doctorService.update(id, { verification: 'Verified' });
-      return { id, verification: 'Verified' };
+      await doctorService.update(id, { verification: 'Verified', status: 'Online' });
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.map((u) => (u.id === id || u.doctorId === id ? { ...u, isApproved: true, verification: 'Verified' } : u));
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, verification: 'Verified', isApproved: true, message: 'Doctor approved successfully!' };
     }
     try {
-      const { data } = await api.post(`/admin/doctors/${id}/verify`);
+      const { data } = await api.put(`/admin/doctors/${id}/approve`);
       return data;
     } catch {
-      return { id, verification: 'Verified' };
+      await doctorService.update(id, { verification: 'Verified', status: 'Online' });
+      return { id, verification: 'Verified', isApproved: true };
     }
   },
 
-  async getAshaWorkers() {
+  async rejectDoctor(id) {
     if (isMockMode()) {
-      return this.getAshaWorkersFallback();
+      await doctorService.update(id, { verification: 'Rejected', status: 'Offline' });
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.map((u) => (u.id === id || u.doctorId === id ? { ...u, isApproved: false, verification: 'Rejected' } : u));
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, verification: 'Rejected', isApproved: false, message: 'Doctor registration rejected.' };
     }
     try {
-      const { data } = await api.get('/admin/asha-workers');
-      if (Array.isArray(data) && data.length > 0) return data;
+      const { data } = await api.put(`/admin/doctors/${id}/reject`);
+      return data;
+    } catch {
+      await doctorService.update(id, { verification: 'Rejected', status: 'Offline' });
+      return { id, verification: 'Rejected', isApproved: false };
+    }
+  },
+
+  async deleteDoctor(id) {
+    if (isMockMode()) {
+      try {
+        const doctors = JSON.parse(localStorage.getItem('jd_doctors') || '[]');
+        localStorage.setItem('jd_doctors', JSON.stringify(doctors.filter((d) => d.id !== id && d.doctorId !== id)));
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        localStorage.setItem('jd_registered_users', JSON.stringify(users.filter((u) => u.id !== id && u.doctorId !== id)));
+      } catch {
+        /* ignore */
+      }
+      return { id, message: 'Doctor removed successfully.' };
+    }
+    try {
+      const { data } = await api.delete(`/admin/doctors/${id}`);
+      return data || { id, message: 'Doctor removed.' };
     } catch (e) {
-      console.warn('[adminService] getAshaWorkers fallback:', e.message);
+      throw new Error(e.message || 'Could not remove doctor.');
     }
-    return this.getAshaWorkersFallback();
   },
 
-  getAshaWorkersFallback() {
-    return [
-      { id: 'AW-1101', name: 'Sunita Devi', village: 'Amroli', block: 'Amroli Block', households: 142, lastSync: '5 min ago', status: 'Active', score: 92, visits: 214 },
-      { id: 'AW-1102', name: 'Reena Yadav', village: 'Palia', block: 'Palia Block', households: 118, lastSync: '20 min ago', status: 'Active', score: 87, visits: 176 },
-      { id: 'AW-1103', name: 'Kavita Nishad', village: 'Devgram', block: 'Devgram Block', households: 96, lastSync: '2 hrs ago', status: 'Inactive', score: 61, visits: 98 },
-      { id: 'AW-1104', name: 'Meena Sahu', village: 'Kanker East', block: 'Kanker Block', households: 131, lastSync: '12 min ago', status: 'Active', score: 89, visits: 205 },
-    ];
-  },
-
-  async getVillages() {
+  async getPendingAdmins() {
     if (isMockMode()) {
-      return this.getVillagesFallback();
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        return users.filter((u) => u.role === 'admin' && u.isApproved === false && !u.isMainAdmin);
+      } catch {
+        return [];
+      }
     }
     try {
-      const { data } = await api.get('/admin/villages');
-      if (Array.isArray(data) && data.length > 0) return data;
+      const { data } = await api.get('/admin/pending-admins');
+      if (Array.isArray(data)) return data;
+    } catch {
+      /* ignore */
+    }
+    try {
+      const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+      return users.filter((u) => u.role === 'admin' && u.isApproved === false && !u.isMainAdmin);
+    } catch {
+      return [];
+    }
+  },
+
+  async approveAdmin(id) {
+    if (isMockMode()) {
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.map((u) => (u.id === id || u.email === id ? { ...u, isApproved: true } : u));
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, isApproved: true, message: 'Admin approved successfully!' };
+    }
+    try {
+      const { data } = await api.put(`/admin/approve-admin/${id}`);
+      return data;
+    } catch {
+      return { id, isApproved: true };
+    }
+  },
+
+  async rejectAdmin(id) {
+    if (isMockMode()) {
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.map((u) => (u.id === id || u.email === id ? { ...u, isApproved: false } : u));
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, isApproved: false, message: 'Admin access rejected.' };
+    }
+    try {
+      const { data } = await api.put(`/admin/reject-admin/${id}`);
+      return data;
+    } catch {
+      return { id, isApproved: false };
+    }
+  },
+
+  async getAdmins() {
+    if (isMockMode()) {
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        return users.filter((u) => u.role === 'admin');
+      } catch {
+        return [];
+      }
+    }
+    try {
+      const { data } = await api.get('/admin/admins');
+      if (Array.isArray(data)) return data;
+    } catch {
+      /* ignore */
+    }
+    try {
+      const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+      return users.filter((u) => u.role === 'admin');
+    } catch {
+      return [];
+    }
+  },
+
+  async createAdmin(payload) {
+    if (isMockMode()) {
+      const authedUser = {
+        id: `usr-${Date.now()}`,
+        name: payload.name,
+        email: payload.email.trim().toLowerCase(),
+        role: 'admin',
+        isApproved: true,
+        isMainAdmin: false,
+        token: `token-admin-${Date.now()}`,
+      };
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        localStorage.setItem('jd_registered_users', JSON.stringify([...users, authedUser]));
+      } catch {
+        /* ignore */
+      }
+      return { id: authedUser.id, name: payload.name, isApproved: true, message: `Admin ${payload.name} created successfully!` };
+    }
+    try {
+      const { data } = await api.post('/admin/create-admin', payload);
+      return data;
     } catch (e) {
-      console.warn('[adminService] getVillages fallback:', e.message);
+      throw new Error(e.message || 'Could not create admin.');
     }
-    return this.getVillagesFallback();
   },
 
-  getVillagesFallback() {
-    return [
-      { id: 'v-amroli', name: 'Amroli' },
-      { id: 'v-palia', name: 'Palia' },
-      { id: 'v-devgram', name: 'Devgram' },
-      { id: 'v-kanker-east', name: 'Kanker East' },
-      { id: 'v-dhamtari-rural', name: 'Dhamtari Rural' },
-    ];
-  },
-
-  async assignAshaWorker(id, villageId) {
+  async deleteAdmin(id) {
     if (isMockMode()) {
-      return { id, villageId, status: 'Active', assignedAt: new Date().toISOString() };
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.filter((u) => u.id !== id && u.email !== id);
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, message: 'Admin profile deleted successfully.' };
     }
     try {
-      const { data } = await api.post(`/admin/asha-workers/${id}/assign`, { villageId });
+      const { data } = await api.delete(`/admin/admins/${id}`);
       return data;
     } catch {
-      return { id, villageId, status: 'Active', assignedAt: new Date().toISOString() };
+      try {
+        const users = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
+        const updated = users.filter((u) => u.id !== id && u.email !== id);
+        localStorage.setItem('jd_registered_users', JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return { id, message: 'Admin deleted successfully.' };
     }
   },
 
-  async toggleAshaWorker(id) {
-    if (isMockMode()) {
-      return { id, deactivated: true };
-    }
-    try {
-      const { data } = await api.post(`/admin/asha-workers/${id}/toggle-status`);
-      return data;
-    } catch {
-      return { id, deactivated: true };
-    }
-  },
+
 
   async getAlerts() {
     if (isMockMode()) {

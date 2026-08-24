@@ -123,7 +123,7 @@ export default function AdminLogin() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@jeevandoot.org"
+          placeholder="admin@clinixconnect.org"
           icon="mail"
           error={errors.email}
         />
@@ -178,7 +178,7 @@ export default function AdminLogin() {
           </Link>
         </p>
         <p className="text-on-surface-variant">
-          Demo login: <span className="font-bold text-primary">admin@jeevandoot.org</span> (pass: any 8+ chars)
+          Demo login: <span className="font-bold text-primary">admin@clinixconnect.org</span> (pass: any 8+ chars)
         </p>
       </div>
     </AuthLayout>

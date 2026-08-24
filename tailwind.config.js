@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // SwasthyaLink / JeevanDoot palette backed by RGB-triplet CSS custom
+        // ClinixConnect palette backed by RGB-triplet CSS custom
         // properties (src/styles/variables.css). The <alpha-value> placeholder
         // keeps opacity modifiers (e.g. bg-primary/40) working; light/dark
         // themes swap automatically via the `.dark` class.

@@ -6,7 +6,6 @@ export const ROLES = Object.freeze({
   ADMIN: 'admin',
   DOCTOR: 'doctor',
   PATIENT: 'patient',
-  NGO: 'ngo',
   GOVERNMENT: 'government',
 });
 
@@ -51,6 +50,14 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isApproved: {
+      type: Boolean,
+      default: true,
+    },
+    isMainAdmin: {
+      type: Boolean,
+      default: false,
     },
     lastLoginAt: {
       type: Date,

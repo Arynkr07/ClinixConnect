@@ -3,18 +3,49 @@ import { sleep } from '../utils/helpers';
 import { appointmentService } from './appointmentService';
 import { notificationService } from './notificationService';
 
+export function deduplicateDoctors(list) {
+  if (!Array.isArray(list)) return [];
+  const seenIds = new Set();
+  const seenEmails = new Set();
+  const seenNames = new Set();
+  const result = [];
+
+  for (const doc of list) {
+    if (!doc) continue;
+    const docId = String(doc.id || doc.doctorId || doc._id || '').toLowerCase().trim();
+    const docEmail = String(doc.email || '').toLowerCase().trim();
+    const docName = String(doc.name || '').toLowerCase().replace('dr. ', '').trim();
+
+    const isDuplicateId = docId && seenIds.has(docId);
+    const isDuplicateEmail = docEmail && seenEmails.has(docEmail);
+    const isDuplicateName = docName && seenNames.has(docName);
+
+    if (isDuplicateId || isDuplicateEmail || (docName && isDuplicateName)) {
+      continue;
+    }
+
+    if (docId) seenIds.add(docId);
+    if (docEmail) seenEmails.add(docEmail);
+    if (docName) seenNames.add(docName);
+    result.push(doc);
+  }
+
+  return result;
+}
+
 function getStoredDoctors() {
+  let storedDocs = [];
   try {
     const raw = localStorage.getItem('jd_doctors_db');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) storedDocs = parsed;
     }
   } catch {
     /* ignore */
   }
 
-  // Also check if any doctors registered in jd_registered_users
+  // Merge any doctors registered in jd_registered_users
   try {
     const rawUsers = localStorage.getItem('jd_registered_users');
     if (rawUsers) {
@@ -22,29 +53,39 @@ function getStoredDoctors() {
       const docsFromUsers = users
         .filter((u) => u.role === 'doctor')
         .map((d) => ({
-          id: d.id || d.doctorId || `JD-DOC-${Math.floor(1000 + Math.random() * 9000)}`,
+          id: d.doctorId || d.id || `dr-${Math.floor(1000 + Math.random() * 9000)}`,
+          doctorId: d.doctorId || d.id || `dr-${Math.floor(1000 + Math.random() * 9000)}`,
           name: d.name,
           specialty: d.specialty || d.specialization || 'General Medicine',
           specialization: d.specialty || d.specialization || 'General Medicine',
+          shiftType: d.shiftType || 'Day Shift',
           hospital: d.hospital || 'District Health Centre',
           facility: d.facility || 'District Health Centre',
           email: d.email,
           phone: d.phone || '+91 98765 43210',
-          status: 'Online',
+          status: d.isApproved ? 'Online' : 'Offline',
           patients: 0,
           rating: 4.8,
           workingHours: d.workingHours || { start: '09:00', end: '17:00' },
           slotDuration: d.slotDuration || 30,
           leaveDays: d.leaveDays || [],
-          verification: 'Verified',
+          verification: d.verification || (d.isApproved ? 'Verified' : 'Pending'),
         }));
-      if (docsFromUsers.length > 0) {
-        localStorage.setItem('jd_doctors_db', JSON.stringify(docsFromUsers));
-        return docsFromUsers;
-      }
+
+      storedDocs = deduplicateDoctors([...storedDocs, ...docsFromUsers]);
     }
   } catch {
     /* ignore */
+  }
+
+  if (storedDocs.length > 0) {
+    storedDocs = deduplicateDoctors(storedDocs);
+    try {
+      localStorage.setItem('jd_doctors_db', JSON.stringify(storedDocs));
+    } catch {
+      /* ignore */
+    }
+    return storedDocs;
   }
 
   // Default initial doctor setup
@@ -55,10 +96,12 @@ function getStoredDoctors() {
       name: 'Dr. Rajesh Sharma',
       specialty: 'General Medicine',
       specialization: 'General Medicine',
+      shiftType: 'Day Shift',
       hospital: 'Amroli Community Health Centre',
       facility: 'Amroli CHC',
+      region: 'Amroli',
       experience: 12,
-      email: 'doctor@jeevandoot.org',
+      email: 'doctor@clinixconnect.org',
       phone: '+91 98765 43210',
       status: 'Online',
       patients: 18,
@@ -75,10 +118,12 @@ function getStoredDoctors() {
       name: 'Dr. Anil Deshmukh',
       specialty: 'Cardiology',
       specialization: 'Cardiology',
+      shiftType: 'Day Shift',
       hospital: 'Dhamtari District Hospital',
       facility: 'Dhamtari Hospital',
+      region: 'Devgram',
       experience: 15,
-      email: 'anil.deshmukh@jeevandoot.org',
+      email: 'anil.deshmukh@clinixconnect.org',
       phone: '+91 98765 43211',
       status: 'Online',
       patients: 14,
@@ -95,10 +140,12 @@ function getStoredDoctors() {
       name: 'Dr. Kavita Nair',
       specialty: 'Pediatrics',
       specialization: 'Pediatrics',
+      shiftType: 'Day Shift',
       hospital: 'Kanker Community Health Centre',
       facility: 'Kanker CHC',
+      region: 'Palia',
       experience: 9,
-      email: 'kavita.nair@jeevandoot.org',
+      email: 'kavita.nair@clinixconnect.org',
       phone: '+91 98765 43212',
       status: 'Online',
       patients: 9,
@@ -108,6 +155,50 @@ function getStoredDoctors() {
       leaveDays: [],
       verification: 'Verified',
       joinedOn: '20 Apr 2024',
+    },
+    {
+      id: 'dr-4',
+      doctorId: 'dr-4',
+      name: 'Dr. Sunita Kapoor',
+      specialty: 'Gynecology',
+      specialization: 'Gynecology',
+      shiftType: 'Night Shift',
+      hospital: 'District Hospital & Maternity Wing',
+      facility: 'District Hospital',
+      region: 'Sundargarh',
+      experience: 11,
+      email: 'sunita.kapoor@clinixconnect.org',
+      phone: '+91 98765 43213',
+      status: 'Online',
+      patients: 22,
+      rating: 4.9,
+      workingHours: { start: '21:00', end: '05:00' },
+      slotDuration: 30,
+      leaveDays: [],
+      verification: 'Verified',
+      joinedOn: '10 May 2024',
+    },
+    {
+      id: 'dr-5',
+      doctorId: 'dr-5',
+      name: 'Dr. Deepak Verma',
+      specialty: 'Orthopedics',
+      specialization: 'Orthopedics',
+      shiftType: 'Day Shift',
+      hospital: 'Amroli Community Health Centre',
+      facility: 'Amroli CHC',
+      region: 'Raigarh',
+      experience: 8,
+      email: 'deepak.verma@clinixconnect.org',
+      phone: '+91 98765 43214',
+      status: 'Online',
+      patients: 11,
+      rating: 4.7,
+      workingHours: { start: '09:00', end: '17:00' },
+      slotDuration: 30,
+      leaveDays: [],
+      verification: 'Verified',
+      joinedOn: '01 Jun 2024',
     },
   ];
 
@@ -144,7 +235,28 @@ function saveLeaveRequestsToStorage(requests) {
   }
 }
 
-function getNextAvailableDate(dateStr) {
+function getShiftRequestsFromStorage() {
+  try {
+    const raw = localStorage.getItem('jd_doctor_shift_requests');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
+
+function saveShiftRequestsToStorage(requests) {
+  try {
+    localStorage.setItem('jd_doctor_shift_requests', JSON.stringify(requests));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getNextAvailableDate(dateStr) {
   try {
     const d = new Date(dateStr || Date.now());
     d.setDate(d.getDate() + 1);
@@ -156,8 +268,9 @@ function getNextAvailableDate(dateStr) {
 }
 
 function formatTime(totalMinutes) {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const norm = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const hours = Math.floor(norm / 60);
+  const minutes = norm % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
@@ -216,7 +329,7 @@ export const doctorService = {
     const localDoctors = getStoredDoctors();
     if (isMockMode()) {
       await sleep(300);
-      return localDoctors;
+      return deduplicateDoctors(localDoctors);
     }
     try {
       const { data } = await api.get('/doctors');
@@ -226,20 +339,35 @@ export const doctorService = {
       const localOnly = localDoctors.filter(
         (d) => !backendIds.has(d.doctorId) && !backendIds.has(d.id)
       );
-      return [...backendDoctors, ...localOnly];
+      return deduplicateDoctors([...backendDoctors, ...localOnly]);
     } catch {
-      return localDoctors;
+      return deduplicateDoctors(localDoctors);
     }
   },
 
   async getById(id) {
+    const docs = getStoredDoctors();
+    const cleanId = String(id || '').toLowerCase();
+    const localMatch = docs.find(
+      (d) =>
+        String(d.id || '').toLowerCase() === cleanId ||
+        String(d.doctorId || '').toLowerCase() === cleanId ||
+        String(d._id || '').toLowerCase() === cleanId ||
+        String(d.email || '').toLowerCase() === cleanId ||
+        String(d.name || '').toLowerCase().includes(cleanId)
+    );
+
     if (isMockMode()) {
       await sleep(200);
-      const docs = getStoredDoctors();
-      return docs.find((d) => d.id === id || d.doctorId === id || d._id === id) ?? null;
+      return localMatch ?? docs[0] ?? null;
     }
-    const { data } = await api.get(`/doctors/${id}`);
-    return data;
+
+    try {
+      const { data } = await api.get(`/doctors/${id}`);
+      return data;
+    } catch {
+      return localMatch ?? docs[0] ?? null;
+    }
   },
 
   async create(payload) {
@@ -339,19 +467,42 @@ export const doctorService = {
   },
 
   async update(id, patch) {
+    const docs = getStoredDoctors();
+    const cleanId = String(id || '').toLowerCase();
+    const idx = docs.findIndex(
+      (d) =>
+        String(d.id || '').toLowerCase() === cleanId ||
+        String(d.doctorId || '').toLowerCase() === cleanId ||
+        String(d._id || '').toLowerCase() === cleanId ||
+        String(d.email || '').toLowerCase() === cleanId ||
+        String(d.name || '').toLowerCase().includes(cleanId)
+    );
+
+    let updatedDoc = null;
+    if (idx >= 0) {
+      docs[idx] = {
+        ...docs[idx],
+        ...patch,
+        shiftType: patch.shiftType || docs[idx].shiftType,
+        workingHours: patch.workingHours || docs[idx].workingHours,
+        slotDuration: patch.slotDuration ? Number(patch.slotDuration) : docs[idx].slotDuration,
+      };
+      saveDoctors(docs);
+      updatedDoc = docs[idx];
+    }
+
     if (isMockMode()) {
       await sleep(300);
-      const docs = getStoredDoctors();
-      const idx = docs.findIndex((d) => d.id === id || d.doctorId === id || d._id === id);
-      if (idx >= 0) {
-        docs[idx] = { ...docs[idx], ...patch };
-        saveDoctors(docs);
-        return docs[idx];
-      }
-      return { id, ...patch };
+      return updatedDoc || { id, ...patch };
     }
-    const { data } = await api.put(`/doctors/${id}`, patch);
-    return data;
+
+    try {
+      const { data } = await api.put(`/doctors/${id}`, patch);
+      return data;
+    } catch (e) {
+      console.warn('[doctorService.update] Backend update API notice:', e.message);
+      return updatedDoc || { id, ...patch };
+    }
   },
 
   async getAvailableSlots(doctorId, dateStr) {
@@ -383,9 +534,12 @@ export const doctorService = {
         return { isDoctorOnLeave: true, slots: [] };
       }
 
-      // Generate all slot times
+      // Generate all slot times (handling overnight shifts e.g. 21:00 to 05:00)
       const startMin = parseTimeToMinutes(doctor.workingHours?.start || '09:00');
-      const endMin = parseTimeToMinutes(doctor.workingHours?.end || '17:00');
+      let endMin = parseTimeToMinutes(doctor.workingHours?.end || '17:00');
+      if (endMin <= startMin) {
+        endMin += 24 * 60;
+      }
       const duration = doctor.slotDuration || 30;
 
       const generated = [];
@@ -504,7 +658,7 @@ export const doctorService = {
     });
     saveDoctors(docs);
 
-    // Cancel affected appointments and notify patients via In-App & Email
+    // Reschedule affected appointments to next available date and notify patients via In-App & Email
     const existing = await appointmentService.getAppointments({ status: 'upcoming' });
 
     const affected = existing.filter((a) => {
@@ -517,38 +671,60 @@ export const doctorService = {
       return isSameDate && docMatch;
     });
 
+    const nextAvailableDate = getNextAvailableDate(req.date);
+
     for (const apt of affected) {
-      await appointmentService.cancel(apt.id, `Cancelled - Dr. ${req.doctorName} on approved leave`);
+      await appointmentService.reschedule(apt.id, nextAvailableDate, apt.startTime || '10:00');
 
       const pid = apt.patientId || apt.patient?.id;
 
-      // 1. Send In-App Notification to Patient
+      // 1. Send In-App Reschedule Notification to Patient
       try {
         if (pid) {
           notificationService.sendToUser(pid, {
-            title: 'Appointment Cancelled - Doctor on Leave',
-            description: `Your appointment on ${req.date} at ${apt.startTime} was cancelled because Dr. ${req.doctorName} is on approved leave (${req.reason}). Please log in to choose another date.`,
-            icon: 'event_busy',
-            tone: 'error',
+            title: '📅 Appointment Rescheduled - Doctor on Leave',
+            description: `Your appointment with Dr. ${req.doctorName} originally on ${req.date} at ${apt.startTime || '10:00'} has been automatically rescheduled to ${nextAvailableDate} at ${apt.startTime || '10:00'} due to approved doctor leave.`,
+            icon: 'edit_calendar',
+            tone: 'primary',
           });
         }
       } catch (e) {
         console.warn(e);
       }
 
-      // 2. Trigger Backend SMTP Email Notification
+      // 2. Trigger Backend SMTP Email Notification for Reschedule
       try {
-        api.post(`/appointments/${apt.id}/cancel`, { reason: `Doctor on Approved Leave (${req.reason})` }).catch(() => {});
+        api.post(`/appointments/${apt.id}/reschedule`, {
+          newDate: nextAvailableDate,
+          newTime: apt.startTime || '10:00',
+          reason: `Doctor on Approved Leave (${req.reason || 'Personal Leave'})`,
+        }).catch(() => {});
       } catch {
         /* ignore */
       }
+    }
+
+    // Also send confirmation notification to Doctor
+    try {
+      const docUserMatch = req.doctorId;
+      if (docUserMatch) {
+        notificationService.sendToUser(docUserMatch, {
+          title: 'Leave Approved & Patients Rescheduled',
+          description: `Your leave for ${req.date} has been approved. ${affected.length} patient appointment(s) have been automatically rescheduled to ${nextAvailableDate} and notified.`,
+          icon: 'event_available',
+          tone: 'success',
+        });
+      }
+    } catch {
+      /* ignore */
     }
 
     return {
       success: true,
       requestId,
       affectedCount: affected.length,
-      message: `Leave approved for ${req.doctorName}. ${affected.length} affected appointment(s) cancelled and patients notified via email & in-app alerts.`,
+      nextAvailableDate,
+      message: `Leave approved for ${req.doctorName}. ${affected.length} affected appointment(s) rescheduled to ${nextAvailableDate} and patients notified via email & in-app alerts.`,
     };
   },
 
@@ -561,6 +737,105 @@ export const doctorService = {
       saveLeaveRequestsToStorage(requests);
     }
     return { success: true, message: 'Leave request rejected.' };
+  },
+
+  async requestShiftChange(payload) {
+    const requests = getShiftRequestsFromStorage();
+    const newReq = {
+      id: `shift-req-${Date.now()}`,
+      doctorId: payload.doctorId,
+      doctorName: payload.doctorName,
+      doctorEmail: payload.doctorEmail || '',
+      currentShift: payload.currentShift || 'Day Shift',
+      requestedShift: payload.requestedShift || 'Night Shift',
+      workingHours: payload.workingHours || (payload.requestedShift === 'Night Shift' ? { start: '21:00', end: '05:00' } : { start: '09:00', end: '17:00' }),
+      reason: payload.reason || 'Requested shift change',
+      status: 'Pending Approval',
+      createdAt: new Date().toISOString(),
+    };
+    requests.unshift(newReq);
+    saveShiftRequestsToStorage(requests);
+
+    // Notify Admin of shift change request
+    try {
+      notificationService.sendToUser('admin', {
+        title: 'Doctor Shift Change Request',
+        description: `Dr. ${payload.doctorName} requested a change from ${newReq.currentShift} to ${newReq.requestedShift} (${newReq.workingHours.start} - ${newReq.workingHours.end}).`,
+        icon: 'swap_horiz',
+        tone: 'secondary',
+      });
+    } catch {
+      /* ignore */
+    }
+
+    return { success: true, request: newReq, message: `Shift change request submitted to Admin for approval.` };
+  },
+
+  async getShiftRequests() {
+    return getShiftRequestsFromStorage();
+  },
+
+  async approveShiftRequest(requestId) {
+    const requests = getShiftRequestsFromStorage();
+    const idx = requests.findIndex((r) => r.id === requestId);
+    if (idx >= 0) {
+      const req = requests[idx];
+      req.status = 'Approved';
+      saveShiftRequestsToStorage(requests);
+
+      // Update doctor profile in storage
+      const docs = getStoredDoctors();
+      const matchIdx = docs.findIndex((d) => d.id === req.doctorId || d.doctorId === req.doctorId || d.name?.includes(req.doctorName));
+      if (matchIdx >= 0) {
+        docs[matchIdx].shiftType = req.requestedShift;
+        docs[matchIdx].workingHours = req.workingHours;
+        saveDoctors(docs);
+      }
+
+      // Notify Doctor
+      try {
+        if (req.doctorId) {
+          notificationService.sendToUser(req.doctorId, {
+            title: 'Shift Change Approved',
+            description: `Your shift change request to ${req.requestedShift} (${req.workingHours.start} – ${req.workingHours.end}) has been approved by the Admin.`,
+            icon: 'check_circle',
+            tone: 'success',
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return { success: true, message: `Shift change approved for Dr. ${req.doctorName}.` };
+    }
+    return { success: false, message: 'Request not found.' };
+  },
+
+  async rejectShiftRequest(requestId, reason = '') {
+    const requests = getShiftRequestsFromStorage();
+    const idx = requests.findIndex((r) => r.id === requestId);
+    if (idx >= 0) {
+      const req = requests[idx];
+      req.status = 'Rejected';
+      req.rejectionReason = reason;
+      saveShiftRequestsToStorage(requests);
+
+      try {
+        if (req.doctorId) {
+          notificationService.sendToUser(req.doctorId, {
+            title: 'Shift Change Request Declined',
+            description: `Your request to change shift to ${req.requestedShift} was declined.`,
+            icon: 'cancel',
+            tone: 'error',
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return { success: true, message: 'Shift change request rejected.' };
+    }
+    return { success: false, message: 'Request not found.' };
   },
 
   async patientAcceptReschedule(appointmentId) {

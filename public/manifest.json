@@ -1,6 +1,6 @@
 {
-  "name": "JeevanDoot - Rural Community Care",
-  "short_name": "JeevanDoot",
+  "name": "ClinixConnect - Rural Community Care",
+  "short_name": "ClinixConnect",
   "description": "Rural Community Care Platform connecting doctors, health workers and remote communities.",
   "start_url": "/",
   "display": "standalone",

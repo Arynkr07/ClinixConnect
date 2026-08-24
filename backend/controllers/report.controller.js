@@ -62,6 +62,7 @@ export const generateReport = asyncHandler(async (req, res) => {
     Doctor.countDocuments(),
   ]);
 
+  const onlineDoctorsCount = await Doctor.countDocuments({ 'availability.status': 'online' });
   const reportData = {
     id: `REP-${Date.now()}`,
     title: `Regional Health Impact Report - ${region}`,
@@ -72,7 +73,7 @@ export const generateReport = asyncHandler(async (req, res) => {
     resolutionRate: 94,
     patientsServed: patientsCount > 0 ? `${patientsCount} Active Patients` : '14.2k',
     sdgAlignment: 'High (SDG 3)',
-    activeDoctors: doctorsCount || 8,
+    activeDoctors: onlineDoctorsCount,
     totalConsultations: appointmentsCount || 24,
     conditionTrends: [
       { label: 'Fever & Infection', value: 45 },

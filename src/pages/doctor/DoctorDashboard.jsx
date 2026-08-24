@@ -25,6 +25,26 @@ export default function DoctorDashboard() {
   const [patients, setPatients] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaveInfo, setLeaveInfo] = useState({ isOnLeave: false });
+
+  useEffect(() => {
+    try {
+      const reqs = JSON.parse(localStorage.getItem('jd_doctor_leave_requests') || '[]');
+      const myEmail = (user?.email || '').toLowerCase();
+      const myName = (user?.name || '').toLowerCase().replace('dr. ', '');
+      const myDocLeave = reqs.find((r) => {
+        const isAppr = (r.status || '').toLowerCase() === 'approved';
+        const rEmail = (r.doctorEmail || '').toLowerCase();
+        const rName = (r.doctorName || '').toLowerCase();
+        return isAppr && (rEmail === myEmail || (rName && myName && rName.includes(myName)));
+      });
+      if (myDocLeave) {
+        setLeaveInfo({ isOnLeave: true, dateStr: myDocLeave.date, reason: myDocLeave.reason });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -123,11 +143,26 @@ export default function DoctorDashboard() {
     outcomes: [0, 0, 0],
   };
 
+
+
   return (
     <DashboardLayout
       sidebarProps={{ items: sidebarItems }}
       headerProps={{ title: t('doctor.welcomeBack', { name: user?.name ?? t('role.doctor') }), subtitle: t('doctor.overviewToday'), right: headerRight }}
     >
+      {leaveInfo.isOnLeave && (
+        <div className="bg-error-container/40 border border-error/30 text-on-error-container rounded-2xl p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-error text-2xl">event_busy</span>
+            <div>
+              <p className="font-headline font-bold text-body-lg">You have an Approved Leave Scheduled ({leaveInfo.dateStr})</p>
+              <p className="text-label-md text-on-surface-variant">Patient appointments on this date have been automatically rescheduled and notified via Email & In-App Alerts.</p>
+            </div>
+          </div>
+          <Badge variant="error" icon="event_busy">Status: On Leave</Badge>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <KPIWidget label={t('doctor.patientsToday')} value={currentStats.patientsToday ?? 0} icon="group" color="primary" trend={12} />
         <KPIWidget label={t('doctor.totalPatients')} value={(currentStats.totalPatients ?? 0).toLocaleString()} icon="group" color="secondary" trend={5} />

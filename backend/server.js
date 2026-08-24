@@ -31,6 +31,23 @@ serveUploads(app);
 // API routes
 app.use('/api/v1', routes);
 
+// Serve production frontend build if available
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, 'public');
+
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+}
+
 // 404 + error handling
 app.use(notFoundHandler);
 app.use(errorHandler);

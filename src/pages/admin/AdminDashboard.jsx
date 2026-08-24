@@ -17,6 +17,8 @@ export default function AdminDashboard() {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedRegion, setSelectedRegion] = useState('All Regions');
+  const REGIONS = ['All Regions', 'Amroli', 'Devgram', 'Palia', 'Dhamtari Rural', 'Lormi Block', 'Bijapur Sector 2', 'Sundargarh', 'Raigarh'];
 
   useEffect(() => {
     const load = async () => {
@@ -49,7 +51,22 @@ export default function AdminDashboard() {
         title: t('admin.title'),
         subtitle: t('admin.subtitle'),
         right: (
-          <>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/40">
+              <span className="material-symbols-outlined text-primary text-xl">location_on</span>
+              <span className="text-label-sm font-semibold text-on-surface shrink-0">Region:</span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="bg-transparent font-headline font-bold text-label-md text-primary focus:outline-none cursor-pointer"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r} value={r} className="bg-surface text-on-surface">
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
             {data && data.pendingEscalations > 0 ? (
               <Link to="/admin/alerts">
                 <Badge variant="critical" icon="priority_high">
@@ -58,7 +75,7 @@ export default function AdminDashboard() {
               </Link>
             ) : null}
             <AdminProfileMenu />
-          </>
+          </div>
         ),
       }}
     >

@@ -1,5 +1,5 @@
 /**
- * Shared navigation for the JeevanDoot Admin Portal.
+ * Shared navigation for the ClinixConnect Admin Portal.
  * Keeps Information Architecture in one place so every admin page
  * (which renders its own Sidebar) stays consistent.
  */

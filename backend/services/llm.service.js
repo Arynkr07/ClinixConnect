@@ -83,7 +83,7 @@ function fallbackPreVisitAnalysis(symptoms = '', severity = 'Moderate') {
     suggestedQuestions: suggestedQuestions.slice(0, 3),
     rawSymptoms: symptoms,
     generatedAt: new Date().toISOString(),
-    engine: 'JeevanDoot Clinical Engine (Standard Fallback)',
+    engine: 'ClinixConnect Clinical Engine (Standard Fallback)',
   };
 }
 
@@ -186,7 +186,7 @@ Return ONLY valid JSON format:
     return {
       patientFriendlySummary: fallbackPostVisitSummary(clinicalNotes, medicines),
       generatedAt: new Date().toISOString(),
-      engine: 'JeevanDoot Clinical Engine (Standard Fallback)',
+      engine: 'ClinixConnect Clinical Engine (Standard Fallback)',
     };
   },
 };

@@ -51,8 +51,6 @@ export default function BookAppointment() {
   const [duration, setDuration] = useState('');
   const [severity, setSeverity] = useState('Moderate');
   const [mode, setMode] = useState('in-person');
-  const [analyzingAi, setAnalyzingAi] = useState(false);
-  const [aiSummary, setAiSummary] = useState(null);
 
   // Advanced Options (Additional Details) state
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -172,10 +170,10 @@ export default function BookAppointment() {
       const payload = {
         patientId: user?.patientId || user?.id || 'JD-1209',
         patientName: user?.name || 'Patient',
-        patientEmail: user?.email || 'patient@jeevandoot.org',
+        patientEmail: user?.email || 'patient@clinixconnect.org',
         doctorId: doctor.id,
         doctorName: doctor.name,
-        doctorEmail: doctor.email || 'doctor@jeevandoot.org',
+        doctorEmail: doctor.email || 'doctor@clinixconnect.org',
         doctorSpecialty: doctor.specialty || doctor.specialization,
         purpose: aiResult?.chiefComplaint || symptoms.slice(0, 80) || 'General Consultation',
         date: selectedDate,
@@ -200,7 +198,17 @@ export default function BookAppointment() {
       setStep(3); // Confirmation screen
       notify({ type: 'success', message: t('booking.bookingSuccess') });
 
-      // Automatically trigger calendar schedule download (.ics file)
+      // Automatically open the Google Calendar event link in a new tab
+      try {
+        const calLink = apt.googleCalendarLink || generateGoogleCalendarLink(apt);
+        if (calLink) {
+          window.open(calLink, '_blank', 'noopener,noreferrer');
+        }
+      } catch (calErr) {
+        console.warn('[BookAppointment] Google Calendar auto-open fallback:', calErr);
+      }
+
+      // Also offer ICS file download for offline calendar apps (Apple/Outlook)
       try {
         downloadIcsFile(apt);
       } catch (icsErr) {
@@ -295,7 +303,7 @@ export default function BookAppointment() {
                 <Badge variant="secondary">{doctor.specialty || doctor.specialization}</Badge>
               </div>
               <p className="text-label-md text-on-surface-variant mt-0.5">
-                {doctor.hospital || doctor.facility} · Working Hours: {doctor.workingHours?.start || '09:00'}–{doctor.workingHours?.end || '17:00'} ({doctor.slotDuration || 30} min slots)
+                {doctor.hospital || doctor.facility} · <span className="font-bold text-on-surface">{doctor.shiftType || 'Day Shift'}</span> ({doctor.workingHours?.start || '09:00'}–{doctor.workingHours?.end || '17:00'}, {doctor.slotDuration || 30} min slots)
               </p>
             </div>
           </div>
@@ -551,7 +559,7 @@ export default function BookAppointment() {
                 <Button type="button" variant="outline" onClick={() => setStep(1)} icon="arrow_back">
                   Back to Slots
                 </Button>
-                <Button type="submit" loading={submitting || analyzingAi} icon="check_circle" size="lg">
+                <Button type="submit" loading={submitting} icon="check_circle" size="lg">
                   Confirm & Book Appointment
                 </Button>
               </div>

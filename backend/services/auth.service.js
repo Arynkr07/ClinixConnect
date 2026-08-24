@@ -26,6 +26,8 @@ export const toAuthUser = async (user, lastLoginAt = user.lastLoginAt) => {
     email: user.email,
     phone: user.phone || '',
     avatar: user.avatar || '',
+    isApproved: user.isApproved ?? true,
+    isMainAdmin: Boolean(user.isMainAdmin || user.email === 'admin@clinixconnect.org'),
     loggedInAt: lastLoginAt || new Date().toISOString(),
   };
 
@@ -37,6 +39,9 @@ export const toAuthUser = async (user, lastLoginAt = user.lastLoginAt) => {
         base.doctorId = doc.doctorId || doc.id || doc._id.toString();
         base.specialty = doc.specialization;
         base.hospital = doc.hospital;
+        base.shiftType = doc.shiftType || 'Day Shift';
+        base.workingHours = doc.workingHours || { start: '09:00', end: '17:00' };
+        base.verification = doc.verification || (user.isApproved ? 'Verified' : 'Pending');
       }
     } else if (user.role === 'patient') {
       const { Patient } = await import('../models/index.js');

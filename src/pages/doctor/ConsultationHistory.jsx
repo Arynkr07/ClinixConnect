@@ -22,22 +22,12 @@ import { formatDateTime, formatDuration } from '../../utils/formatDate';
 
 import NotificationBell from '../../components/layout/NotificationBell';
 import ProfileMenu from '../../components/layout/ProfileMenu';
-
-const SIDEBAR = {
-  items: [
-    { labelKey: 'dashboard', to: '/doctor/dashboard', icon: 'dashboard', end: true },
-    { labelKey: 'patientQueue', to: '/doctor/queue', icon: 'groups' },
-    { labelKey: 'liveConsultation', to: '/doctor/consultation', icon: 'call' },
-    { labelKey: 'followUp', to: '/doctor/followup', icon: 'event_repeat' },
-    { labelKey: 'consultationHistory', to: '/doctor/consultation-history', icon: 'video_library', end: true },
-    { labelKey: 'performanceAnalytics', to: '/doctor/performance', icon: 'query_stats' },
-  ],
-};
+import { doctorSidebarItems } from './doctorNav';
 
 export default function ConsultationHistory() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const sidebarItems = SIDEBAR.items.map((item) => ({ ...item, label: t(`nav.${item.labelKey}`) }));
+  const sidebarItems = doctorSidebarItems(t);
   const [consultations, setConsultations] = useState([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);

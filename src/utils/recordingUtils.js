@@ -16,7 +16,7 @@
  *   downloadRecording(id)      -> download from bucket
  */
 
-const DB_NAME = 'jeevandoot-media';
+const DB_NAME = 'clinixconnect-media';
 const DB_VERSION = 1;
 const STORE_NAME = 'recordings';
 

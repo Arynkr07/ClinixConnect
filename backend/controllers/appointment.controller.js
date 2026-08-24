@@ -189,8 +189,9 @@ export const createAppointment = asyncHandler(async (req, res) => {
   });
 
   if (!patientDoc) {
+    const { generatePatientId } = await import('../utils/generateId.js');
     patientDoc = await Patient.create({
-      patientId: typeof patientParam === 'string' && patientParam.startsWith('JD-') ? patientParam : `JD-${Math.floor(1000 + Math.random() * 9000)}`,
+      patientId: generatePatientId(req.body.patientName || 'Patient', new Date()),
       personalInfo: {
         fullName: req.body.patientName || 'Patient',
         village: req.body.patientVillage || 'Amroli',
@@ -219,7 +220,7 @@ export const createAppointment = asyncHandler(async (req, res) => {
   const { calendarService } = await import('../services/calendar.service.js');
   const googleCalendarLink = calendarService.generateGoogleCalendarWebLink({
     summary: req.body.purpose || 'Doctor Consultation',
-    description: `Consultation via JeevanDoot.\nChief Complaint: ${req.body.chiefComplaint || 'N/A'}`,
+    description: `Consultation via ClinixConnect.\nChief Complaint: ${req.body.chiefComplaint || 'N/A'}`,
     dateStr: date,
     startTime,
     endTime: req.body.endTime || '',
@@ -231,8 +232,8 @@ export const createAppointment = asyncHandler(async (req, res) => {
     const dEmail = req.body.doctorEmail || doctorDoc?.email || 'projectwork1709@gmail.com';
     calendarEventResult = await calendarService.createOAuthCalendarEvent({
       summary: `Medical Consultation: ${patientDoc?.personalInfo?.fullName || req.body.patientName || 'Patient'} with ${doctorDoc?.name || 'Doctor'}`,
-      description: `Appointment booked via JeevanDoot.\nChief Complaint: ${req.body.chiefComplaint || req.body.purpose || 'N/A'}\nUrgency: ${req.body.urgency || 'Low'}`,
-      location: doctorDoc?.facility || doctorDoc?.hospital || 'JeevanDoot Clinic',
+      description: `Appointment booked via ClinixConnect.\nChief Complaint: ${req.body.chiefComplaint || req.body.purpose || 'N/A'}\nUrgency: ${req.body.urgency || 'Low'}`,
+      location: doctorDoc?.facility || doctorDoc?.hospital || 'ClinixConnect Clinic',
       dateStr: date,
       startTime,
       endTime: req.body.endTime || '',
@@ -388,11 +389,44 @@ export const updateAppointment = asyncHandler(async (req, res) => {
   if (req.body?.date || req.body?.startTime) {
     try {
       const { emailService } = await import('../services/email.service.js');
+      const { calendarService } = await import('../services/calendar.service.js');
       const newDateStr = new Date(appointment.date).toISOString().slice(0, 10);
       const pName = populated?.patient?.personalInfo?.fullName || populated?.patient?.name || 'Patient';
       const dName = populated?.doctor?.name || 'Doctor';
       const patientEmail = req.body?.patientEmail || populated?.patient?.personalInfo?.email || 'projectwork1709@gmail.com';
       const doctorEmail = req.body?.doctorEmail || populated?.doctor?.email || 'projectwork1709@gmail.com';
+
+      // Generate a fresh Google Calendar web link for the new date/time
+      const freshCalLink = calendarService.generateGoogleCalendarWebLink({
+        summary: `Medical Consultation: ${pName} with ${dName}`,
+        description: `Rescheduled appointment via ClinixConnect.`,
+        dateStr: newDateStr,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime || '',
+      });
+
+      // Update the Google Calendar OAuth event if we have an event ID
+      if (appointment.googleCalendarEventId) {
+        try {
+          await calendarService.updateOAuthCalendarEvent({
+            eventId: appointment.googleCalendarEventId,
+            summary: `Medical Consultation: ${pName} with ${dName} (Rescheduled)`,
+            description: `Appointment rescheduled via ClinixConnect.`,
+            location: populated?.doctor?.hospital || 'ClinixConnect Clinic',
+            dateStr: newDateStr,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime || '',
+            patientEmail,
+            doctorEmail,
+          });
+        } catch (calErr) {
+          console.warn('[appointment] Google Calendar event update warning:', calErr.message);
+        }
+      }
+
+      // Persist the refreshed calendar link on the appointment document
+      appointment.googleCalendarLink = freshCalLink;
+      await appointment.save();
 
       // 1. Reschedule email to Patient
       await emailService.sendRescheduleAlert({
@@ -404,7 +438,7 @@ export const updateAppointment = asyncHandler(async (req, res) => {
         oldTime,
         newDate: newDateStr,
         newTime: appointment.startTime,
-        calendarLink: appointment.googleCalendarLink,
+        calendarLink: freshCalLink,
       });
 
       // 2. Reschedule email to Doctor
@@ -417,7 +451,7 @@ export const updateAppointment = asyncHandler(async (req, res) => {
         oldTime,
         newDate: newDateStr,
         newTime: appointment.startTime,
-        calendarLink: appointment.googleCalendarLink,
+        calendarLink: freshCalLink,
       });
     } catch (err) {
       console.warn('[appointment] reschedule email error:', err.message);

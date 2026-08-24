@@ -58,7 +58,6 @@ export const validatePrescription = (data = {}) => {
     missing.push('At least one medicine or clinical diagnosis');
   } else {
     meds.forEach((med, index) => {
-      const label = getMedicineName(med) || `Medicine ${index + 1}`;
       if (!getMedicineName(med)) missing.push(`Medicine name (item ${index + 1})`);
     });
   }
@@ -122,7 +121,7 @@ export const downloadPrescriptionPDF = (data = {}) => {
   doc.setTextColor(...PRIMARY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
-  doc.text('JeevanDoot', marginX, 52);
+  doc.text('ClinixConnect', marginX, 52);
   doc.setTextColor(...SECONDARY);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -137,53 +136,60 @@ export const downloadPrescriptionPDF = (data = {}) => {
   doc.line(marginX, 84, pageWidth - marginX, 84);
 
   doc.setTextColor(...PRIMARY);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('Prescription', marginX, 108);
+  let y = 108;
 
-  doc.setTextColor(...ON_SURFACE);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Patient Information', marginX, 134);
+  const ensureSpace = (needed) => {
+    if (y + needed > pageHeight - 70) {
+      doc.addPage();
+      y = 60;
+    }
+  };
 
+  const sectionTitle = (text) => {
+    ensureSpace(44);
+    doc.setTextColor(...PRIMARY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(String(text).toUpperCase(), marginX, y);
+    doc.setDrawColor(...OUTLINE);
+    doc.setLineWidth(0.6);
+    doc.line(marginX, y + 5, pageWidth - marginX, y + 5);
+    y += 24;
+  };
+
+  sectionTitle('Prescription Details');
+  ensureSpace(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ON_SURFACE_VARIANT);
+  doc.text('Patient', marginX, y);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10.5);
   doc.setTextColor(...ON_SURFACE);
-  doc.text(`Patient ID:`, marginX, 154);
-  doc.text(`${patientId}`, marginX + 78, 154);
-  doc.text(`Patient Name:`, marginX, 172);
-  doc.text(`${patientName}`, marginX + 78, 172);
-  doc.text(`Date:`, marginX, 190);
-  doc.text(`${today}`, marginX + 78, 190);
+  doc.text(`${patientId} — ${patientName}`, marginX + 100, y);
+  y += 16;
 
-  const tableStartY = 210;
-  autoTable(doc, {
-    startY: tableStartY,
-    head: [['Medicine', 'Dosage', 'Frequency', 'Duration', 'Schedule']],
-    body: meds.map((med) => [
-      getMedicineName(med) || '—',
-      normalize(med.dosage) || '—',
-      normalize(med.frequency) || '—',
-      normalize(med.duration) ? `${normalize(med.duration)} days` : '—',
-      getScheduleLabel(med.schedule) || '—',
-    ]),
-    margin: { left: marginX, right: marginX },
-    styles: { fontSize: 10, cellPadding: 7, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
-    headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [246, 249, 243] },
-    columnStyles: {
-      0: { cellWidth: 150 },
-      1: { cellWidth: 80 },
-      2: { cellWidth: 110 },
-      3: { cellWidth: 70 },
-      4: { cellWidth: 97 },
-    },
-  });
+  if (meds.length > 0) {
+    sectionTitle('Prescribed Medications');
+    ensureSpace(80);
+    autoTable(doc, {
+      startY: y,
+      head: [['Medicine', 'Dosage', 'Frequency', 'Duration', 'Schedule']],
+      body: meds.map((med) => [
+        getMedicineName(med) || '—',
+        normalize(med.dosage) || '—',
+        normalize(med.frequency) || '—',
+        normalize(med.duration) ? `${normalize(med.duration)} days` : '—',
+        getScheduleLabel(med.schedule) || '—',
+      ]),
+      margin: { left: marginX, right: marginX },
+      styles: { fontSize: 9.5, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
+      headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 249, 243] },
+    });
+    y = (doc.lastAutoTable?.finalY || y) + 24;
+  }
 
-  const tableEndY = doc.lastAutoTable?.finalY || tableStartY + 80;
-
-  const signatureY = Math.max(tableEndY + 90, pageHeight - 150);
-
+  ensureSpace(140);
+  const signatureY = Math.max(y + 70, pageHeight - 150);
   doc.setDrawColor(...ON_SURFACE);
   doc.setLineWidth(0.75);
   doc.line(marginX, signatureY, marginX + 220, signatureY);
@@ -198,7 +204,7 @@ export const downloadPrescriptionPDF = (data = {}) => {
   doc.setTextColor(...ON_SURFACE_VARIANT);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Generated electronically by JeevanDoot', marginX, pageHeight - 48);
+  doc.text('Generated electronically by ClinixConnect', marginX, pageHeight - 48);
   doc.text('Rural Community Care Platform', pageWidth - marginX, pageHeight - 48, { align: 'right' });
 
   doc.save(`Prescription_${sanitizeFileName(patientId)}.pdf`);
@@ -276,13 +282,13 @@ export const printPrescription = (data = {}) => {
 </head>
 <body>
   <div class="toolbar">
-    <strong>JeevanDoot — Prescription Preview</strong>
+    <strong>ClinixConnect — Prescription Preview</strong>
     <button type="button" onclick="window.print()">Print / Save as PDF</button>
   </div>
   <div class="paper">
     <div class="header">
       <div class="brand">
-        <h1>JeevanDoot</h1>
+        <h1>ClinixConnect</h1>
         <p>RURAL COMMUNITY CARE</p>
       </div>
       <div class="date">Date: ${escapeHtml(today)}</div>
@@ -319,7 +325,7 @@ export const printPrescription = (data = {}) => {
     </div>
 
     <div class="footer">
-      <span>Generated electronically by JeevanDoot</span>
+      <span>Generated electronically by ClinixConnect</span>
       <span>Rural Community Care Platform</span>
     </div>
   </div>

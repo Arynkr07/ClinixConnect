@@ -9,7 +9,6 @@ import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { patientService } from '../../services/patientService';
 import { appointmentService } from '../../services/appointmentService';
-import { doctorService } from '../../services/doctorService';
 import NotificationBell from '../../components/layout/NotificationBell';
 import ProfileMenu from '../../components/layout/ProfileMenu';
 
@@ -48,44 +47,7 @@ export default function FollowUpScheduling() {
   const [cancellingId, setCancellingId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  const [leaveDate, setLeaveDate] = useState('');
-  const [leaveReason, setLeaveReason] = useState('');
-  const [myLeaveRequests, setMyLeaveRequests] = useState([]);
-  const [submittingLeave, setSubmittingLeave] = useState(false);
 
-  const loadMyLeaveRequests = async () => {
-    const all = await doctorService.getLeaveRequests();
-    setMyLeaveRequests(all);
-  };
-
-  useEffect(() => {
-    loadMyLeaveRequests();
-  }, []);
-
-  const handleRequestLeaveSubmit = async (e) => {
-    e.preventDefault();
-    if (!leaveDate) {
-      notify({ type: 'error', message: 'Please select a leave date.' });
-      return;
-    }
-    setSubmittingLeave(true);
-    try {
-      const res = await doctorService.requestLeave({
-        doctorId: user?.id || user?.doctorId || 'dr-1',
-        doctorName: user?.name || 'Dr. Rajesh Sharma',
-        date: leaveDate,
-        reason: leaveReason || 'Personal Leave',
-      });
-      notify({ type: 'success', message: res.message });
-      setLeaveDate('');
-      setLeaveReason('');
-      loadMyLeaveRequests();
-    } catch {
-      notify({ type: 'error', message: 'Could not submit leave request.' });
-    } finally {
-      setSubmittingLeave(false);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;

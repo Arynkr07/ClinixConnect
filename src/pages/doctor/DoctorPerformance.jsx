@@ -11,21 +11,11 @@ import { doctorService } from '../../services/doctorService';
 
 import NotificationBell from '../../components/layout/NotificationBell';
 import ProfileMenu from '../../components/layout/ProfileMenu';
-
-const SIDEBAR = {
-  items: [
-    { labelKey: 'dashboard', to: '/doctor/dashboard', icon: 'dashboard', end: true },
-    { labelKey: 'patientQueue', to: '/doctor/queue', icon: 'groups' },
-    { labelKey: 'liveConsultation', to: '/doctor/consultation', icon: 'call' },
-    { labelKey: 'followUp', to: '/doctor/followup', icon: 'event_repeat' },
-    { labelKey: 'consultationHistory', to: '/doctor/consultation-history', icon: 'video_library' },
-    { labelKey: 'performanceAnalytics', to: '/doctor/performance', icon: 'query_stats' },
-  ],
-};
+import { doctorSidebarItems } from './doctorNav';
 
 export default function DoctorPerformance() {
   const { t } = useTranslation();
-  const sidebarItems = SIDEBAR.items.map((item) => ({ ...item, label: t(`nav.${item.labelKey}`) }));
+  const sidebarItems = doctorSidebarItems(t);
   const HEATMAP_ROWS = [
     { label: t('performance.general'), values: [1, 2, 3, 2, 1, 0, 0] },
     { label: t('performance.prenatal'), values: [0, 1, 2, 2, 3, 1, 0] },

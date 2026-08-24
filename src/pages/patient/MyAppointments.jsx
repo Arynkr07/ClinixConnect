@@ -58,7 +58,7 @@ export default function MyAppointments() {
   }, [user]);
 
   const handleCancel = async (id) => {
-    const reason = prompt('Please enter a cancellation reason (optional):');
+    const reason = window.prompt('Please enter a cancellation reason (optional):');
     if (reason === null) return;
     try {
       await appointmentService.cancel(id, reason);

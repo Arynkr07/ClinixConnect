@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { cx } from '../../utils/helpers';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,7 +14,6 @@ const TONE_STYLES = {
 
 export default function NotificationBell() {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const userId = user?.patientId || user?.doctorId || user?.id || user?.email;
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);

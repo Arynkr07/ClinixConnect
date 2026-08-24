@@ -20,7 +20,7 @@ const connectDB = async () => {
     console.error('Action Needed: Update MONGODB_URI in backend/.env with correct Atlas username/password.');
     console.error('======================================================\n');
 
-    const fallbackUri = 'mongodb://127.0.0.1:27017/jeevandoot';
+    const fallbackUri = 'mongodb://127.0.0.1:27017/clinixconnect';
     if (env.MONGODB_URI !== fallbackUri) {
       console.warn(`[db] Falling back to local MongoDB (${fallbackUri})...`);
       try {

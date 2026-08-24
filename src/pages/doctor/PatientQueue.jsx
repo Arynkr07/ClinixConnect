@@ -12,7 +12,7 @@ import EmptyState from '../../components/common/EmptyState';
 import { patientService } from '../../services/patientService';
 import { useDebounce } from '../../hooks/useDebounce';
 import { TRIAGE_BY_RISK, RISK_ORDER } from '../../utils/constants';
-import { cx } from '../../utils/helpers';
+import { cx, generatePatientId } from '../../utils/helpers';
 import NotificationBell from '../../components/layout/NotificationBell';
 import ProfileMenu from '../../components/layout/ProfileMenu';
 
@@ -131,7 +131,9 @@ export default function PatientQueue() {
                 <tbody>
                   {filtered.map((p) => (
                     <tr key={p.id} className="border-b border-outline-variant hover:bg-surface-container-low transition-colors">
-                      <td className="px-6 py-4 font-mono font-semibold text-primary">{p.id}</td>
+                      <td className="px-6 py-4 font-mono font-semibold text-primary">
+                        {p.patientId || (String(p.id).startsWith('JD-') ? generatePatientId(p.name) : p.id)}
+                      </td>
                       <td className="px-6 py-4 font-semibold text-on-surface">{p.name}</td>
                       <td className="px-6 py-4 text-on-surface-variant">{p.village}</td>
                       <td className="px-6 py-4 text-on-surface-variant max-w-[240px] truncate">{p.complaint}</td>

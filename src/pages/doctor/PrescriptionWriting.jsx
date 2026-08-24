@@ -111,14 +111,7 @@ export default function PrescriptionWriting() {
       .map((slot) => t(`prescription.${slot.toLowerCase()}`))
       .join(', ');
 
-  const validateMedicineInput = () => {
-    const missing = [];
-    if (!current.medicineName.trim()) missing.push(t('prescription.missingMedicineName'));
-    if (!current.dosage.trim()) missing.push(t('prescription.missingDosage'));
-    if (!current.frequency.trim()) missing.push(t('prescription.missingFrequency'));
-    if (!current.duration.trim()) missing.push(t('prescription.missingDuration'));
-    return missing;
-  };
+
 
   const resetMedicineForm = () => {
     setCurrent(EMPTY_MEDICINE);
@@ -245,7 +238,7 @@ export default function PrescriptionWriting() {
           icon: 'prescriptions',
           tone: 'success',
         });
-      } catch (e) {
+      } catch {
         /* ignore */
       }
 

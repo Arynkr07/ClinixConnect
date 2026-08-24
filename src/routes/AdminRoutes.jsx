@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import DiseaseSurveillance from '../pages/admin/DiseaseSurveillance';
 import CaseLevelAnalytics from '../pages/admin/CaseLevelAnalytics';
 import HighRiskAuditLog from '../pages/admin/HighRiskAuditLog';
 import ReportGeneration from '../pages/admin/ReportGeneration';
@@ -14,7 +13,6 @@ export default function AdminRoutes() {
     <Routes>
       <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<AdminDashboard />} />
-      <Route path="surveillance" element={<DiseaseSurveillance />} />
       <Route path="case-analytics" element={<CaseLevelAnalytics />} />
       <Route path="audit-log" element={<HighRiskAuditLog />} />
       <Route path="reports" element={<ReportGeneration />} />

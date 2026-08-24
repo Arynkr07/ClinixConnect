@@ -19,6 +19,19 @@ export const slugify = (text = '') =>
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export const generatePatientId = (name = 'Patient', dateInput = new Date()) => {
+  const cleanName = String(name || 'Patient')
+    .replace(/^Dr\.\s*/i, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .trim();
+  const firstName = cleanName.split(/\s+/)[0] || 'Patient';
+  const formattedName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const d = new Date(dateInput || Date.now());
+  const pad = (n) => String(n).padStart(2, '0');
+  const timestamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  return `${formattedName}${timestamp}`;
+};
+
 export const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 export const percent = (value, total) =>

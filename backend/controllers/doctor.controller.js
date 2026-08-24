@@ -204,7 +204,7 @@ export const createDoctor = asyncHandler(async (req, res) => {
   let userId = user;
   if (!userId) {
     // Find or create User in MongoDB for this doctor
-    const cleanEmail = (email || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@jeevandoot.org`).trim().toLowerCase();
+    const cleanEmail = (email || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@clinixconnect.org`).trim().toLowerCase();
     let existingUser = await User.findOne({ email: cleanEmail });
     if (!existingUser) {
       existingUser = await User.create({
@@ -254,15 +254,139 @@ export const createDoctor = asyncHandler(async (req, res) => {
  * PUT /doctors/:id
  * Updates profile fields; user's linked name can be updated too.
  */
+async function findDoctorByAnyId(id) {
+  if (!id) return null;
+  const isObjId = Boolean(String(id).match(/^[0-9a-fA-F]{24}$/));
+  if (isObjId) {
+    const doc = await Doctor.findById(id);
+    if (doc) return doc;
+  }
+  return await Doctor.findOne({
+    $or: [
+      { doctorId: id },
+      { id },
+      { email: id },
+      { name: new RegExp(String(id).replace(/[^a-zA-Z0-9]/g, ''), 'i') },
+    ],
+  });
+}
+
+/**
+ * PUT /doctors/:id
+ * Updates profile fields, working hours, shift and slot duration.
+ */
 export const updateDoctor = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findById(req.params.id);
-  if (!doctor) throw new ApiError(404, 'Doctor not found.');
+  const { id } = req.params;
+  let doctor = await findDoctorByAnyId(id);
+
+  if (!doctor) {
+    doctor = await Doctor.create({
+      doctorId: typeof id === 'string' && id.startsWith('dr-') ? id : `dr-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: req.body?.name || 'Doctor',
+      specialization: req.body?.specialization || req.body?.specialty || 'General Medicine',
+      hospital: req.body?.hospital || req.body?.facility || 'District Health Centre',
+      workingHours: req.body?.workingHours || { start: '09:00', end: '17:00' },
+      shiftType: req.body?.shiftType || 'Day Shift',
+      slotDuration: Number(req.body?.slotDuration) || 30,
+      availability: { status: 'online' },
+    });
+  }
 
   const { user, ...updates } = req.body || {};
   Object.assign(doctor, updates);
+  if (updates.workingHours) doctor.workingHours = updates.workingHours;
+  if (updates.shiftType) doctor.shiftType = updates.shiftType;
+  if (updates.slotDuration) doctor.slotDuration = Number(updates.slotDuration);
   await doctor.save();
 
-  return success(res, doctor);
+  // If doctor is linked to User, sync User document too
+  if (doctor.user) {
+    try {
+      await User.findByIdAndUpdate(doctor.user, {
+        name: doctor.name,
+        email: doctor.email || undefined,
+        phone: doctor.phone || undefined,
+        specialization: doctor.specialization,
+        specialty: doctor.specialization,
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Notify any patients who have an upcoming consultation with this doctor
+  try {
+    const { Appointment, User: UserModel } = await import('../models/index.js');
+    const { emailService } = await import('../services/email.service.js');
+    const { notificationService } = await import('../services/notification.service.js');
+
+    const upcomingAppointments = await Appointment.find({
+      doctor: doctor._id,
+      status: 'upcoming',
+    }).populate('patient');
+
+    const parseMin = (t) => {
+      const [h, m] = (t || '09:00').split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    const startMin = parseMin(doctor.workingHours?.start || '09:00');
+    let endMin = parseMin(doctor.workingHours?.end || '17:00');
+    if (endMin <= startMin) endMin += 24 * 60;
+
+    for (const apt of upcomingAppointments) {
+      const aptMin = parseMin(apt.startTime);
+      const isOutside = aptMin < startMin || aptMin >= endMin;
+
+      if (apt.patient?.user) {
+        await notificationService.notify({
+          userIds: apt.patient.user,
+          title: "Doctor's Schedule Updated",
+          description: `${doctor.name}'s shift & working hours updated to ${doctor.shiftType || 'Day Shift'} (${doctor.workingHours?.start} - ${doctor.workingHours?.end}).`,
+          type: 'appointment',
+          link: '/patient/appointments',
+        });
+      }
+
+      const pUser = apt.patient?.user ? await UserModel.findById(apt.patient.user) : null;
+      const targetEmail = apt.patientEmail || apt.patient?.personalInfo?.email || pUser?.email;
+
+      if (targetEmail) {
+        await emailService.sendDoctorScheduleUpdateAlert({
+          patientEmail: targetEmail,
+          patientName: apt.patient?.personalInfo?.fullName || 'Patient',
+          doctorName: doctor.name,
+          date: new Date(apt.date).toISOString().slice(0, 10),
+          startTime: apt.startTime,
+          newShift: doctor.shiftType || 'Day Shift',
+          newWorkingHours: `${doctor.workingHours?.start} - ${doctor.workingHours?.end}`,
+          isOutsideNewHours: isOutside,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[updateDoctor] schedule change patient alert error:', err.message);
+  }
+
+  const serialized = {
+    id: doctor.doctorId || doctor.id || doctor._id.toString(),
+    doctorId: doctor.doctorId || doctor._id.toString(),
+    _id: doctor._id.toString(),
+    name: doctor.name,
+    specialty: doctor.specialization || 'General Medicine',
+    specialization: doctor.specialization || 'General Medicine',
+    hospital: doctor.hospital || 'District Health Centre',
+    facility: doctor.hospital || 'District Health Centre',
+    shiftType: doctor.shiftType || 'Day Shift',
+    workingHours: doctor.workingHours || { start: '09:00', end: '17:00' },
+    slotDuration: doctor.slotDuration || 30,
+    status: doctor.availability?.status === 'online' ? 'Online' : 'Offline',
+    email: doctor.email || '',
+    phone: doctor.phone || '',
+    leaveDays: doctor.leaveDays || [],
+  };
+
+  return success(res, serialized);
 });
 
 /**
@@ -289,11 +413,9 @@ export const updateMyAvailability = asyncHandler(async (req, res) => {
 /**
  * POST /doctors/:id/toggle-status
  * Body: { status?: 'online'|'offline'|'busy' } — toggles if omitted.
- * NOTE: Admin may verify a doctor but cannot control presence; a doctor can
- * only toggle their own presence via /doctors/me/availability.
  */
 export const toggleDoctorStatus = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findById(req.params.id);
+  const doctor = await findDoctorByAnyId(req.params.id);
   if (!doctor) throw new ApiError(404, 'Doctor not found.');
 
   if (req.user?.role === 'doctor' && String(doctor.user) !== String(req.user._id)) {
@@ -313,8 +435,9 @@ export const toggleDoctorStatus = asyncHandler(async (req, res) => {
  * DELETE /doctors/:id
  */
 export const deleteDoctor = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findByIdAndDelete(req.params.id);
+  const doctor = await findDoctorByAnyId(req.params.id);
   if (!doctor) throw new ApiError(404, 'Doctor not found.');
+  await Doctor.findByIdAndDelete(doctor._id);
   return noContent(res);
 });
 
@@ -327,14 +450,7 @@ export const getAvailableSlots = asyncHandler(async (req, res) => {
   const { date } = req.query;
   if (!date) throw new ApiError(400, 'Query parameter "date" is required (YYYY-MM-DD).');
 
-  const query = id.startsWith('dr-')
-    ? { doctorId: id }
-    : { $or: [{ doctorId: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }] };
-
-  let doctor = await Doctor.findOne(query).lean();
-  if (!doctor) {
-    doctor = await Doctor.findById(id).lean();
-  }
+  let doctor = await findDoctorByAnyId(id);
 
   if (!doctor) {
     doctor = {
@@ -353,15 +469,21 @@ export const getAvailableSlots = asyncHandler(async (req, res) => {
     return success(res, { isDoctorOnLeave: true, slots: [] });
   }
 
-  // Parse working hours
+  // Parse working hours (handling overnight shifts e.g. 21:00 to 05:00)
   const parseMin = (t) => {
     const [h, m] = (t || '09:00').split(':').map(Number);
     return (h || 0) * 60 + (m || 0);
   };
-  const fmt = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const fmt = (min) => {
+    const total = ((min % (24 * 60)) + 24 * 60) % (24 * 60);
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  };
 
   const startMin = parseMin(doctor.workingHours?.start || '09:00');
-  const endMin = parseMin(doctor.workingHours?.end || '17:00');
+  let endMin = parseMin(doctor.workingHours?.end || '17:00');
+  if (endMin <= startMin) {
+    endMin += 24 * 60; // Overnight shift calculation
+  }
   const duration = doctor.slotDuration || 30;
 
   const generated = [];
@@ -450,7 +572,7 @@ export const markLeave = asyncHandler(async (req, res) => {
       }
 
       const patientUser = apt.patient?.user ? await User.findById(apt.patient.user) : null;
-      const targetEmail = apt.patientEmail || apt.patient?.personalInfo?.email || patientUser?.email || 'patient@jeevandoot.org';
+      const targetEmail = apt.patientEmail || apt.patient?.personalInfo?.email || patientUser?.email || 'patient@clinixconnect.org';
 
       await emailService.sendDoctorLeaveCancellation({
         patientEmail: targetEmail,

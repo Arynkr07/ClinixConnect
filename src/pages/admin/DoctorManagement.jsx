@@ -10,11 +10,12 @@ import SearchBar from '../../components/common/SearchBar';
 import Input from '../../components/common/Input';
 import KPIWidget from '../../components/charts/KPIWidget';
 import { adminService } from '../../services/adminService';
-import { doctorService } from '../../services/doctorService';
+import { doctorService, deduplicateDoctors } from '../../services/doctorService';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useNotification } from '../../hooks/useNotification';
+
 import { adminSidebarItems } from './adminNav';
-import { SPECIALIZATIONS, SLOT_DURATIONS } from '../../utils/constants';
+import { SPECIALIZATIONS, SLOT_DURATIONS, DOCTOR_SHIFTS } from '../../utils/constants';
 
 const EMPTY_FORM = {
   name: '',
@@ -35,7 +36,12 @@ export default function DoctorManagement() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+
   const debouncedQuery = useDebounce(query, 300);
+
+  const [selectedRegion, setSelectedRegion] = useState('All');
+  const REGIONS = ['All', 'Amroli', 'Devgram', 'Palia', 'Dhamtari Rural', 'Lormi Block', 'Bijapur Sector 2', 'Sundargarh', 'Raigarh'];
 
   // Leave Management State
   const [leaveDoctor, setLeaveDoctor] = useState(null);
@@ -47,10 +53,10 @@ export default function DoctorManagement() {
     setLoading(true);
     try {
       const data = await doctorService.getAll();
-      setDoctors(data);
+      setDoctors(deduplicateDoctors(data));
     } catch {
       const data = await adminService.getDoctors();
-      setDoctors(data);
+      setDoctors(deduplicateDoctors(data));
     } finally {
       setLoading(false);
     }
@@ -62,14 +68,20 @@ export default function DoctorManagement() {
 
   const sidebarItems = adminSidebarItems(t);
 
-  const filtered = doctors.filter(
-    (d) =>
+  const filtered = doctors.filter((d) => {
+    const q = debouncedQuery.toLowerCase();
+    const matchesSearch =
       !debouncedQuery ||
-      d.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      (d.specialty || d.specialization || '').toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      (d.id || '').toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-      (d.facility || d.hospital || '').toLowerCase().includes(debouncedQuery.toLowerCase())
-  );
+      d.name.toLowerCase().includes(q) ||
+      (d.specialty || d.specialization || '').toLowerCase().includes(q) ||
+      (d.facility || d.hospital || '').toLowerCase().includes(q) ||
+      (d.id || d.doctorId || '').toLowerCase().includes(q);
+
+    const docRegion = d.region || d.hospital || d.facility || '';
+    const matchesRegion = selectedRegion === 'All' || docRegion.toLowerCase().includes(selectedRegion.toLowerCase());
+
+    return matchesSearch && matchesRegion;
+  });
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -106,11 +118,50 @@ export default function DoctorManagement() {
     }
   };
 
-  const handleVerify = async (doctor) => {
-    await adminService.verifyDoctor(doctor.id);
-    setDoctors((prev) => prev.map((d) => (d.id === doctor.id ? { ...d, verification: 'Verified' } : d)));
-    notify({ type: 'success', message: t('doctorsMgmt.verified', { name: doctor.name }) });
+  const [pendingShifts, setPendingShifts] = useState([]);
+
+  const loadPendingShifts = useCallback(async () => {
+    try {
+      const list = await doctorService.getShiftRequests();
+      const pending = (Array.isArray(list) ? list : []).filter((s) => s.status === 'Pending Approval');
+      setPendingShifts(pending);
+    } catch {
+      setPendingShifts([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPendingShifts();
+  }, [loadPendingShifts]);
+
+  const handleApproveShift = async (shiftReq) => {
+    const res = await doctorService.approveShiftRequest(shiftReq.id);
+    notify({ type: 'success', message: res.message || `Shift change approved!` });
+    loadPendingShifts();
+    load();
   };
+
+  const handleRejectShift = async (shiftReq) => {
+    const res = await doctorService.rejectShiftRequest(shiftReq.id, 'Declined by Admin');
+    notify({ type: 'info', message: res.message || `Shift change request declined.` });
+    loadPendingShifts();
+  };
+
+  const handleApproveDoctor = async (doctor) => {
+    const res = await adminService.approveDoctor(doctor.id);
+    setDoctors((prev) => prev.map((d) => (d.id === doctor.id ? { ...d, verification: 'Verified', status: 'Online' } : d)));
+    notify({ type: 'success', message: res.message || `${doctor.name} approved successfully!` });
+    load();
+  };
+
+  const handleRejectDoctor = async (doctor) => {
+    const res = await adminService.rejectDoctor(doctor.id);
+    setDoctors((prev) => prev.map((d) => (d.id === doctor.id ? { ...d, verification: 'Rejected', status: 'Offline' } : d)));
+    notify({ type: 'info', message: res.message || `${doctor.name} registration rejected.` });
+    load();
+  };
+
+
 
   const handleLeaveSubmit = async (e) => {
     e.preventDefault();
@@ -146,6 +197,7 @@ export default function DoctorManagement() {
     setEditForm({
       name: doc.name || '',
       specialty: doc.specialty || doc.specialization || 'General Medicine',
+      shiftType: doc.shiftType || (doc.workingHours?.start === '21:00' ? 'Night Shift' : 'Day Shift'),
       workStart: doc.workingHours?.start || '09:00',
       workEnd: doc.workingHours?.end || '17:00',
       slotDuration: doc.slotDuration || 30,
@@ -166,6 +218,7 @@ export default function DoctorManagement() {
         name: doctorName,
         specialty: editForm.specialty,
         specialization: editForm.specialty,
+        shiftType: editForm.shiftType || 'Day Shift',
         email: editForm.email,
         phone: editForm.phone,
         workingHours: { start: editForm.workStart, end: editForm.workEnd },
@@ -174,7 +227,7 @@ export default function DoctorManagement() {
         hospital: editForm.facility || 'District Health Centre',
       });
 
-      notify({ type: 'success', message: `${doctorName}'s working hours and slot duration updated successfully!` });
+      notify({ type: 'success', message: `${doctorName}'s shift, working hours and slot duration updated successfully!` });
       setEditingDoctor(null);
       await load();
     } catch (err) {
@@ -225,7 +278,39 @@ export default function DoctorManagement() {
     }
   };
 
-  const onlineCount = doctors.filter((d) => d.status === 'Online').length;
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const isDoctorOnLeaveToday = useCallback((d) => {
+    if ((d.status || '').toLowerCase() === 'on leave') return true;
+
+    const hasLeaveDay = (d.leaveDays || []).some((l) => String(l).slice(0, 10) === todayStr);
+    if (hasLeaveDay) return true;
+
+    const dEmail = (d.email || '').toLowerCase();
+    const dId = (d.id || d.doctorId || '').toLowerCase();
+    const dName = (d.name || '').toLowerCase().replace('dr. ', '');
+
+    return (leaveRequests || []).some((r) => {
+      const isAppr = (r.status || '').toLowerCase() === 'approved';
+      const isToday = String(r.date).slice(0, 10) === todayStr;
+      const rEmail = (r.doctorEmail || '').toLowerCase();
+      const rId = (r.doctorId || '').toLowerCase();
+      const rName = (r.doctorName || '').toLowerCase();
+      return isAppr && isToday && (
+        (rEmail && dEmail && rEmail === dEmail) ||
+        (rId && dId && (rId === dId || dId.includes(rId))) ||
+        (rName && dName && (rName.includes(dName) || dName.includes(rName)))
+      );
+    });
+  }, [leaveRequests, todayStr]);
+
+  const isOnlineDoctor = useCallback((d) => {
+    const isVerified = (d.verification || 'Verified') === 'Verified' && (d.isApproved !== false);
+    const isOnlineStatus = (d.status || '').toLowerCase() === 'online';
+    return isVerified && isOnlineStatus && !isDoctorOnLeaveToday(d);
+  }, [isDoctorOnLeaveToday]);
+
+  const onlineCount = doctors.filter(isOnlineDoctor).length;
   const pendingCount = doctors.filter((d) => d.verification === 'Pending').length;
   const avgRating = doctors.length
     ? (doctors.reduce((acc, d) => acc + (Number(d.rating) || 0), 0) / doctors.length).toFixed(1)
@@ -253,6 +338,82 @@ export default function DoctorManagement() {
         <KPIWidget label={t('doctorsMgmt.pendingVerification')} value={pendingCount} icon="verified_user" color="tertiary" trend={-2} />
         <KPIWidget label={t('doctorsMgmt.avgRating')} value={avgRating} icon="star" color="error" trend={1} />
       </div>
+
+      {/* System Administrator Profile Section */}
+      <div className="mb-8">
+        <Card
+          title="System Administrator"
+          icon="admin_panel_settings"
+          subtitle="Pre-configured primary system administrator account"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-outline-variant/30 bg-surface-container-low text-label-md text-on-surface-variant">
+                  <th className="py-3 px-4">Administrator Name</th>
+                  <th className="py-3 px-4">Email Address</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Account Level</th>
+                </tr>
+              </thead>
+              <tbody className="text-body-md">
+                <tr className="hover:bg-surface-container-low/50">
+                  <td className="py-3 px-4 font-bold text-on-surface flex items-center gap-2">
+                    Main Admin
+                    <Badge variant="primary">Sole System Admin</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-on-surface-variant font-mono text-label-md">admin@clinixconnect.org</td>
+                  <td className="py-3 px-4">
+                    <Badge variant="success" dot dotColor="bg-success">
+                      Approved & Active
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <span className="text-label-sm text-on-surface-variant italic">Primary Administrator</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Pending Doctor Shift Change Requests */}
+      {pendingShifts.length > 0 && (
+        <div className="mb-8">
+          <Card
+            title="Pending Doctor Shift Change Requests"
+            icon="swap_horiz"
+            subtitle="Review requested 8-hour shift changes and schedule adjustments submitted by doctors"
+          >
+            <div className="space-y-3">
+              {pendingShifts.map((s) => (
+                <div key={s.id} className="flex items-center justify-between bg-surface-container-low p-4 rounded-xl flex-wrap gap-3 border border-outline-variant/30">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-on-surface text-body-lg">{s.doctorName}</span>
+                      <Badge variant="secondary" icon={s.requestedShift === 'Night Shift' ? 'nights_stay' : 'wb_sunny'}>
+                        Requested: {s.requestedShift} ({s.workingHours?.start} – {s.workingHours?.end})
+                      </Badge>
+                    </div>
+                    <p className="text-label-md text-on-surface-variant mt-1">
+                      Current Shift: <span className="font-semibold text-on-surface">{s.currentShift}</span> · Reason: <span className="font-semibold text-on-surface">{s.reason || 'Rotation preference'}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" icon="check_circle" onClick={() => handleApproveShift(s)}>
+                      Approve Shift Change
+                    </Button>
+                    <Button size="sm" variant="outline" icon="cancel" onClick={() => handleRejectShift(s)}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="mb-8">
         <Card
@@ -306,7 +467,26 @@ export default function DoctorManagement() {
       <Card
         title={t('doctorsMgmt.registeredDoctors')}
         subtitle={t('doctorsMgmt.manageProfiles')}
-        headerRight={<SearchBar placeholder={t('doctorsMgmt.searchDoctors')} onSearch={setQuery} containerClassName="w-72" />}
+        headerRight={
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/40">
+              <span className="material-symbols-outlined text-primary text-lg">location_on</span>
+              <span className="text-label-sm font-semibold text-on-surface shrink-0">Region:</span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="bg-transparent font-semibold text-label-md text-on-surface focus:outline-none cursor-pointer"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r} value={r} className="bg-surface text-on-surface">
+                    {r === 'All' ? 'All Regions' : r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <SearchBar placeholder={t('doctorsMgmt.searchDoctors')} onSearch={setQuery} containerClassName="w-64" />
+          </div>
+        }
       >
         {loading ? (
           <div className="flex justify-center py-16">
@@ -362,13 +542,19 @@ export default function DoctorManagement() {
                         )}
                       </td>
                       <td className="px-5 py-4">
-                        <Badge
-                          variant={d.status === 'On Leave' || hasLeave ? 'error' : d.status === 'Online' ? 'success' : 'neutral'}
-                          dot
-                          dotColor={d.status === 'On Leave' || hasLeave ? 'bg-error' : d.status === 'Online' ? 'bg-success' : 'bg-outline'}
-                        >
-                          {d.status === 'On Leave' || hasLeave ? 'On Leave' : d.status || 'Active'}
-                        </Badge>
+                        {(() => {
+                          const isOnLeave = isDoctorOnLeaveToday(d);
+                          const isOnline = isOnlineDoctor(d);
+                          return (
+                            <Badge
+                              variant={isOnLeave ? 'error' : isOnline ? 'success' : 'neutral'}
+                              dot
+                              dotColor={isOnLeave ? 'bg-error' : isOnline ? 'bg-success' : 'bg-outline'}
+                            >
+                              {isOnLeave ? 'On Leave' : isOnline ? 'Online' : 'Offline'}
+                            </Badge>
+                          );
+                        })()}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
@@ -391,10 +577,19 @@ export default function DoctorManagement() {
                           >
                             Mark Leave
                           </Button>
-                          {d.verification === 'Pending' && (
-                            <Button size="sm" variant="outline" icon="verified_user" onClick={() => handleVerify(d)}>
-                              {t('doctorsMgmt.verify')}
-                            </Button>
+                          {d.verification === 'Pending' ? (
+                            <div className="flex items-center gap-1.5">
+                              <Button size="sm" icon="check_circle" onClick={() => handleApproveDoctor(d)}>
+                                Approve Doctor
+                              </Button>
+                              <Button size="sm" variant="outline" icon="cancel" onClick={() => handleRejectDoctor(d)}>
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
+                            <Badge variant={d.verification === 'Rejected' ? 'error' : 'success'}>
+                              {d.verification || 'Verified'}
+                            </Badge>
                           )}
                         </div>
                       </td>
@@ -484,6 +679,7 @@ export default function DoctorManagement() {
         </form>
       </Modal>
 
+
       {/* Doctor Leave Management Modal */}
       {leaveDoctor && (
         <Modal
@@ -567,19 +763,42 @@ export default function DoctorManagement() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-label-lg font-semibold text-on-surface ml-1 mb-2">Work Shift (Preset) *</label>
+              <select
+                value={editForm.shiftType || 'Day Shift'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const start = val === 'Night Shift' ? '21:00' : '09:00';
+                  const end = val === 'Night Shift' ? '05:00' : '17:00';
+                  setEditForm((f) => ({
+                    ...f,
+                    shiftType: val,
+                    workStart: val === 'Custom' ? f.workStart : start,
+                    workEnd: val === 'Custom' ? f.workEnd : end,
+                  }));
+                }}
+                className="w-full h-14 bg-surface-container-low border border-outline-variant rounded-lg px-4 focus:ring-2 focus:ring-primary font-bold"
+              >
+                {DOCTOR_SHIFTS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Working Start Time *"
                 type="time"
                 value={editForm.workStart}
-                onChange={(e) => setEditForm((f) => ({ ...f, workStart: e.target.value }))}
+                onChange={(e) => setEditForm((f) => ({ ...f, workStart: e.target.value, shiftType: 'Custom' }))}
                 required
               />
               <Input
                 label="Working End Time *"
                 type="time"
                 value={editForm.workEnd}
-                onChange={(e) => setEditForm((f) => ({ ...f, workEnd: e.target.value }))}
+                onChange={(e) => setEditForm((f) => ({ ...f, workEnd: e.target.value, shiftType: 'Custom' }))}
                 required
               />
             </div>

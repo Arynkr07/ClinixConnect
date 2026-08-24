@@ -1,9 +1,9 @@
 {
   "app": {
-    "name": "JeevanDoot",
+    "name": "ClinixConnect",
     "tagline": "ગ્રામીણ સામુદાયિક આરોગ્ય સેવા",
     "legal": "© {{year}} {{app}}. ગ્રામીણ સામુદાયિક આરોગ્ય પહેલ.",
-    "secured": "© {{year}} ગ્રામીણ સામુદાયિક આરોગ્ય પહેલ. JeevanDoot-Shield દ્વારા સુરક્ષિત."
+    "secured": "© {{year}} ગ્રામીણ સામુદાયિક આરોગ્ય પહેલ. ClinixConnect-Shield દ્વારા સુરક્ષિત."
   },
   "common": {
     "save": "સાચવો",
@@ -158,8 +158,8 @@
     "newTo": "{{app}} માટે નવા?",
     "administrator": "વહીવટકર્તા? અહીં સાઇન ઇન કરો",
     "demo": "ડેમો: કોઈપણ ઇમેઇલ કોઈપણ પાસવર્ડ સાથે કામ કરે છે",
-    "demoDoctor": "ડેમો: doctor@jeevandoot.org નો ઉપયોગ કોઈપણ 8+ અક્ષર પાસવર્ડ સાથે કરો",
-    "demoAdmin": "ડેમો: admin@jeevandoot.org નો ઉપયોગ કોઈપણ 8+ અક્ષર પાસવર્ડ સાથે કરો",
+    "demoDoctor": "ડેમો: doctor@clinixconnect.org નો ઉપયોગ કોઈપણ 8+ અક્ષર પાસવર્ડ સાથે કરો",
+    "demoAdmin": "ડેમો: admin@clinixconnect.org નો ઉપયોગ કોઈપણ 8+ અક્ષર પાસવર્ડ સાથે કરો",
     "loginToDashboard": "ડેશબોર્ડ પર લોગિન",
     "secureSignIn": "સુરક્ષિત સાઇન ઇન",
     "doctorLogin": "ડૉક્ટર લોગિન",
@@ -169,7 +169,7 @@
     "adminLogin": "વહીવટકર્તા લોગિન",
     "adminLoginSubtitle": "પ્લેટફોર્મ વહીવટકર્તાઓ માટે સુરક્ષિત પ્રવેશ",
     "doctorIllustrationTitle": "દરેક ઉંબરા સુધી પહોંચતી આરોગ્યસેવા.",
-    "doctorIllustrationText": "JeevanDoot ડૉક્ટરો, આરોગ્ય કર્મચારીઓ અને નિષ્ણાતોને સીમલેસ ગ્રામીણ સંભાળ માટે એકસાથે લાવે છે.",
+    "doctorIllustrationText": "ClinixConnect ડૉક્ટરો, આરોગ્ય કર્મચારીઓ અને નિષ્ણાતોને સીમલેસ ગ્રામીણ સંભાળ માટે એકસાથે લાવે છે.",
     "doctorIllustrationVaccines": "રસીકરણ અભિયાન",
     "doctorIllustrationPrescriptions": "ઇ-પ્રિસ્ક્રિપ્શન",
     "doctorIllustrationSurveillance": "લાઇવ દેખરેખ",
@@ -231,7 +231,7 @@
     "smsNotifs": "એસએમએસ સૂચનાઓ",
     "smsNotifsDesc": "ટેક્સ્ટ સંદેશ દ્વારા તાત્કાલિક ચેતવણીઓ",
     "appNotifs": "ઇન-એપ સૂચનાઓ",
-    "appNotifsDesc": "JeevanDoot ની અંદર રીઅલ-ટાઇમ ચેતવણીઓ",
+    "appNotifsDesc": "ClinixConnect ની અંદર રીઅલ-ટાઇમ ચેતવણીઓ",
     "language": "ભાષા",
     "saveChanges": "ફેરફારો સાચવો",
     "settingsSaved": "સેટિંગ્સ સાચવી.",
@@ -497,7 +497,7 @@
     "quickReference": "ક્વિક સંદર્ભ",
     "quickRef1": "• એક જ પ્રિસ્ક્રિપ્શનમાં બહુવિધ દવાઓ ઉમેરો.",
     "quickRef2": "• સાચવતા પહેલા કોઈપણ દવા સંપાદિત અથવા દૂર કરો.",
-    "quickRef3": "• ઇ-પ્રિસ્ક્રિપ્શનો JeevanDoot દ્વારા ડિજિટલી સહી કરેલા છે.",
+    "quickRef3": "• ઇ-પ્રિસ્ક્રિપ્શનો ClinixConnect દ્વારા ડિજિટલી સહી કરેલા છે.",
     "quickRef4": "• રિમાઇન્ડર શેડ્યૂલ દર્દીના ફોન પર આપમેળે સિંક થાય છે.",
     "addAtLeastOne": "પહેલા ઓછામાં ઓછી એક દવા ઉમેરો",
     "cannotAddMissing": "દવા ઉમેરી શકાતી નથી. ગુમ: {{fields}}",
@@ -865,7 +865,7 @@
     "added": "ડૉક્ટર {{id}} ઉમેરાયા",
     "statusToggled": "{{name}} સ્થિતિ ટૉગલ થઈ",
     "specialtyPlaceholder": "દા.ત. જનરલ ફિઝિશિયન",
-    "emailPlaceholder": "doctor@jeevandoot.org",
+    "emailPlaceholder": "doctor@clinixconnect.org",
     "phonePlaceholder": "+91 98765 43210",
     "totalDoctors": "કુલ ડોક્ટર",
     "onlineNow": "હવે ઑનલાઇન",

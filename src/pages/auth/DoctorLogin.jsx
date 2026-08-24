@@ -49,7 +49,7 @@ export default function DoctorLogin() {
           Healthcare that reaches every doorstep.
         </h2>
         <p className="text-body-lg opacity-80">
-          JeevanDoot brings doctors, health workers and specialists together for seamless rural care.
+          ClinixConnect brings doctors, health workers and specialists together for seamless rural care.
         </p>
         <div className="grid grid-cols-3 gap-6 mt-8">
           <div className="flex flex-col items-center gap-2">
@@ -119,7 +119,7 @@ export default function DoctorLogin() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="doctor@jeevandoot.org"
+          placeholder="doctor@clinixconnect.org"
           icon="mail"
           error={errors.email}
         />
@@ -174,7 +174,7 @@ export default function DoctorLogin() {
           </Link>
         </p>
         <p className="text-on-surface-variant">
-          Demo login: <span className="font-bold text-primary">doctor@jeevandoot.org</span> (pass: any 8+ chars)
+          Demo login: <span className="font-bold text-primary">doctor@clinixconnect.org</span> (pass: any 8+ chars)
         </p>
       </div>
     </AuthLayout>

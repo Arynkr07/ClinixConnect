@@ -18,6 +18,8 @@ export default function DoctorSearch() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('All');
+  const [selectedRegion, setSelectedRegion] = useState('All');
+  const REGIONS = ['All', 'Amroli', 'Devgram', 'Palia', 'Dhamtari Rural', 'Lormi Block', 'Bijapur Sector 2', 'Sundargarh', 'Raigarh'];
 
   const sidebarItems = patientSidebarItems(t);
 
@@ -46,7 +48,12 @@ export default function DoctorSearch() {
       selectedSpecialty === 'All' ||
       (doc.specialty || doc.specialization) === selectedSpecialty;
 
-    return matchesSearch && matchesSpecialty;
+    const docRegion = doc.region || doc.hospital || doc.facility || '';
+    const matchesRegion =
+      selectedRegion === 'All' ||
+      docRegion.toLowerCase().includes(selectedRegion.toLowerCase());
+
+    return matchesSearch && matchesSpecialty && matchesRegion;
   });
 
   return (
@@ -66,11 +73,28 @@ export default function DoctorSearch() {
       {/* Search & Filter Header */}
       <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 mb-8 card-shadow space-y-5">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <SearchBar
-            placeholder="Search by doctor name, specialty, or clinic..."
-            onSearch={setSearch}
-            containerClassName="w-full md:w-96"
-          />
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            <SearchBar
+              placeholder="Search by doctor name, specialty, or clinic..."
+              onSearch={setSearch}
+              containerClassName="w-full md:w-80"
+            />
+            <div className="flex items-center gap-2 bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant/40 shrink-0">
+              <span className="material-symbols-outlined text-primary text-xl">location_on</span>
+              <span className="text-label-sm font-semibold text-on-surface">Region:</span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="bg-transparent font-headline font-bold text-label-md text-primary focus:outline-none cursor-pointer"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r} value={r} className="bg-surface text-on-surface">
+                    {r === 'All' ? 'All Regions' : r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="text-label-md text-on-surface-variant shrink-0">
             Found <span className="font-bold text-primary">{filtered.length}</span> doctor(s)
           </div>
@@ -184,9 +208,11 @@ export default function DoctorSearch() {
                       <span className="truncate">{doctor.hospital || doctor.facility || 'Primary Health Centre'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary text-base">schedule</span>
-                      <span>
-                        Working Hours: {doctor.workingHours?.start || '09:00'} – {doctor.workingHours?.end || '17:00'}
+                      <span className="material-symbols-outlined text-primary text-base">
+                        {doctor.shiftType === 'Night Shift' ? 'nights_stay' : 'wb_sunny'}
+                      </span>
+                      <span className="font-bold text-on-surface">
+                        {doctor.shiftType || 'Day Shift'}: {doctor.workingHours?.start || '09:00'} – {doctor.workingHours?.end || '17:00'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

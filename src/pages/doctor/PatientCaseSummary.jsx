@@ -8,19 +8,10 @@ import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import { patientService } from '../../services/patientService';
-import { caseFileService } from '../../services/caseFileService';
+import { aiService } from '../../services/aiService';
 import { RISK_STYLES } from '../../utils/constants';
 
-const SIDEBAR = {
-  items: [
-    { labelKey: 'dashboard', to: '/doctor/dashboard', icon: 'dashboard', end: true },
-    { labelKey: 'patientQueue', to: '/doctor/queue', icon: 'groups' },
-    { labelKey: 'liveConsultation', to: '/doctor/consultation', icon: 'call' },
-    { labelKey: 'followUp', to: '/doctor/followup', icon: 'event_repeat' },
-    { labelKey: 'consultationHistory', to: '/doctor/consultation-history', icon: 'video_library' },
-    { labelKey: 'performanceAnalytics', to: '/doctor/performance', icon: 'query_stats' },
-  ],
-};
+import { doctorSidebarItems } from './doctorNav';
 
 function VitalCard({ label, value, unit, icon, numeric = false }) {
   const displayValue = (() => {
@@ -72,7 +63,7 @@ function ReportSection({ icon, title, children }) {
 export default function PatientCaseSummary() {
   const { id } = useParams();
   const { t, i18n } = useTranslation();
-  const sidebarItems = SIDEBAR.items.map((item) => ({ ...item, label: t(`nav.${item.labelKey}`) }));
+  const sidebarItems = doctorSidebarItems(t);
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [aiSummary, setAiSummary] = useState(null);
@@ -92,8 +83,8 @@ export default function PatientCaseSummary() {
     let active = true;
     setAiLoading(true);
     setAiSummary(null);
-    caseFileService
-      .getAiSummary(patient)
+    aiService
+      .generatePreVisitSummary(patient.complaint || patient.queue?.reason || 'General Checkup', patient.queue?.risk || 'Moderate')
       .then((summary) => {
         if (active) setAiSummary(summary);
       })

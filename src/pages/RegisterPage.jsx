@@ -5,7 +5,7 @@ import Input from '../components/common/Input';
 import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../hooks/useNotification';
 import { useTranslation } from 'react-i18next';
-import { APP_NAME, REGISTRATION_ROLES, ROLE_META, ROLE_PORTAL } from '../utils/constants';
+import { APP_NAME, REGISTRATION_ROLES, ROLE_META, ROLE_PORTAL, SPECIALIZATIONS, DOCTOR_SHIFTS } from '../utils/constants';
 
 export default function RegisterPage() {
   const [searchParams] = useSearchParams();
@@ -17,6 +17,8 @@ export default function RegisterPage() {
     name: '',
     email: '',
     phone: '',
+    specialization: 'General Medicine',
+    shiftType: 'Day Shift',
     password: '',
     confirmPassword: '',
   });
@@ -36,6 +38,7 @@ export default function RegisterPage() {
     if (!form.email.trim()) next.email = t('auth.emailRequired');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = t('auth.emailInvalid');
     if (form.phone && !/^[0-9+\-\s]{7,15}$/.test(form.phone)) next.phone = t('auth.phoneInvalid');
+    if (role === 'doctor' && !form.specialization) next.specialization = 'Please select a specialization.';
     if (!form.password) next.password = t('auth.passwordRequired');
     else if (form.password.length < 8) next.password = t('auth.passwordMinChars');
     if (form.confirmPassword !== form.password) next.confirmPassword = t('auth.passwordsDoNotMatch');
@@ -48,6 +51,9 @@ export default function RegisterPage() {
     setErrors(next);
     if (Object.keys(next).length) return;
 
+    const workStart = form.shiftType === 'Night Shift' ? '21:00' : '09:00';
+    const workEnd = form.shiftType === 'Night Shift' ? '05:00' : '17:00';
+
     setLoading(true);
     try {
       await register({
@@ -56,13 +62,19 @@ export default function RegisterPage() {
         phone: form.phone.trim(),
         password: form.password,
         role,
+        specialization: role === 'doctor' ? form.specialization : undefined,
+        shiftType: role === 'doctor' ? form.shiftType : undefined,
+        workingHours: role === 'doctor' ? { start: workStart, end: workEnd } : undefined,
       });
 
       notify({ type: 'success', message: t('auth.accountCreated') });
       navigate(ROLE_PORTAL[role] ?? '/', { replace: true });
     } catch (err) {
       const msg = err.message || 'Registration failed.';
-      if (msg.toLowerCase().includes('already exists') || err.status === 409) {
+      if (msg.toLowerCase().includes('pending approval')) {
+        notify({ type: 'warning', message: msg });
+        navigate('/login', { replace: true });
+      } else if (msg.toLowerCase().includes('already exists') || err.status === 409) {
         setErrors({ email: 'An account with this email already exists. Please sign in instead.' });
       } else {
         notify({ type: 'error', message: msg });
@@ -107,7 +119,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="bg-surface-container-lowest rounded-xl card-shadow border border-outline-variant/20 p-6 md:p-10 space-y-8">
           <fieldset>
             <legend className="text-label-lg font-bold mb-4">{t('auth.chooseYourRole')}</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {REGISTRATION_ROLES.map((value) => {
                 const { icon } = ROLE_META[value];
                 const selected = role === value;
@@ -178,6 +190,63 @@ export default function RegisterPage() {
                 autoComplete="tel"
               />
             </div>
+
+            {role === 'doctor' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-label-md font-medium text-on-surface mb-1">
+                    Medical Specialization <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={form.specialization}
+                      onChange={update('specialization')}
+                      className="w-full h-12 pl-11 pr-10 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                    >
+                      {SPECIALIZATIONS.map((spec) => (
+                        <option key={spec} value={spec}>
+                          {spec}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+                      stethoscope
+                    </span>
+                    <span className="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+                      arrow_drop_down
+                    </span>
+                  </div>
+                  {errors.specialization && (
+                    <p className="text-label-sm text-error mt-1">{errors.specialization}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-label-md font-medium text-on-surface mb-1">
+                    Work Shift (8-Hour) <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={form.shiftType}
+                      onChange={update('shiftType')}
+                      className="w-full h-12 pl-11 pr-10 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer font-bold"
+                    >
+                      {DOCTOR_SHIFTS.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+                      {form.shiftType === 'Night Shift' ? 'nights_stay' : 'wb_sunny'}
+                    </span>
+                    <span className="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+                      arrow_drop_down
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Input
                 label={t('auth.password')}

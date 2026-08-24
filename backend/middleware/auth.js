@@ -41,7 +41,7 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     req.user = {
       _id: `demo-${demoRole}-id`,
       name: demoRole === 'doctor' ? 'Dr. Rajesh Sharma' : demoRole === 'admin' ? 'Admin User' : 'Patient User',
-      email: `${demoRole}@jeevandoot.org`,
+      email: `${demoRole}@clinixconnect.org`,
       role: demoRole,
       isActive: true,
     };
@@ -68,7 +68,7 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     user = {
       _id: payload.id || payload._id || payload.sub || 'fallback-id',
       name: payload.name || 'User',
-      email: payload.email || 'user@jeevandoot.org',
+      email: payload.email || 'user@clinixconnect.org',
       role: payload.role || 'patient',
       isActive: true,
     };

@@ -1,9 +1,9 @@
 {
   "app": {
-    "name": "JeevanDoot",
+    "name": "ClinixConnect",
     "tagline": "Rural Community Care",
     "legal": "© {{year}} {{app}}. Rural Community Care Initiative.",
-    "secured": "© {{year}} Rural Community Care Initiative. Secured by JeevanDoot-Shield."
+    "secured": "© {{year}} Rural Community Care Initiative. Secured by ClinixConnect-Shield."
   },
   "common": {
     "save": "Save",
@@ -160,8 +160,8 @@
     "newTo": "New to {{app}}?",
     "administrator": "Administrator? Sign in here",
     "demo": "Demo: any email with any password works",
-    "demoDoctor": "Demo: use doctor@jeevandoot.org with any 8+ char password",
-    "demoAdmin": "Demo: use admin@jeevandoot.org with any 8+ char password",
+    "demoDoctor": "Demo: use doctor@clinixconnect.org with any 8+ char password",
+    "demoAdmin": "Demo: use admin@clinixconnect.org with any 8+ char password",
     "loginToDashboard": "Login to Dashboard",
     "secureSignIn": "Secure Sign In",
     "doctorLogin": "Doctor Login",
@@ -171,7 +171,7 @@
     "adminLogin": "Admin Login",
     "adminLoginSubtitle": "Secure access for platform administrators",
     "doctorIllustrationTitle": "Healthcare that reaches every doorstep.",
-    "doctorIllustrationText": "JeevanDoot brings doctors, health workers and specialists together for seamless rural care.",
+    "doctorIllustrationText": "ClinixConnect brings doctors, health workers and specialists together for seamless rural care.",
     "doctorIllustrationVaccines": "Vaccination Drives",
     "doctorIllustrationPrescriptions": "E-Prescriptions",
     "doctorIllustrationSurveillance": "Live Surveillance",
@@ -233,7 +233,7 @@
     "smsNotifs": "SMS Notifications",
     "smsNotifsDesc": "Urgent alerts via text message",
     "appNotifs": "In-app Notifications",
-    "appNotifsDesc": "Real-time alerts inside JeevanDoot",
+    "appNotifsDesc": "Real-time alerts inside ClinixConnect",
     "language": "Language",
     "saveChanges": "Save Changes",
     "settingsSaved": "Settings saved.",
@@ -499,7 +499,7 @@
     "quickReference": "Quick Reference",
     "quickRef1": "• Add multiple medicines to the same prescription.",
     "quickRef2": "• Edit or remove any medicine before saving.",
-    "quickRef3": "• E-prescriptions are digitally signed by JeevanDoot.",
+    "quickRef3": "• E-prescriptions are digitally signed by ClinixConnect.",
     "quickRef4": "• Schedule reminders auto-sync to patient phone.",
     "addAtLeastOne": "Add at least one medicine first",
     "cannotAddMissing": "Cannot add medicine. Missing: {{fields}}",
@@ -867,7 +867,7 @@
     "added": "Doctor {{id}} added",
     "statusToggled": "{{name}} status toggled",
     "specialtyPlaceholder": "e.g. General Physician",
-    "emailPlaceholder": "doctor@jeevandoot.org",
+    "emailPlaceholder": "doctor@clinixconnect.org",
     "phonePlaceholder": "+91 98765 43210",
     "totalDoctors": "Total Doctors",
     "onlineNow": "Online Now",

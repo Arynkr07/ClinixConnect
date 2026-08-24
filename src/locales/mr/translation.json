@@ -1,9 +1,9 @@
 {
   "app": {
-    "name": "JeevanDoot",
+    "name": "ClinixConnect",
     "tagline": "ग्रामीण सामुदायिक आरोग्य सेवा",
     "legal": "© {{year}} {{app}}. ग्रामीण सामुदायिक आरोग्य उपक्रम.",
-    "secured": "© {{year}} ग्रामीण सामुदायिक आरोग्य उपक्रम. JeevanDoot-Shield द्वारे सुरक्षित."
+    "secured": "© {{year}} ग्रामीण सामुदायिक आरोग्य उपक्रम. ClinixConnect-Shield द्वारे सुरक्षित."
   },
   "common": {
     "save": "जतन करा",
@@ -158,8 +158,8 @@
     "newTo": "{{app}} साठी नवीन?",
     "administrator": "प्रशासक? येथे साइन इन करा",
     "demo": "डेमो: कोणताही ईमेल कोणत्याही पासवर्डसह काम करतो",
-    "demoDoctor": "डेमो: doctor@jeevandoot.org वापरा कोणत्याही 8+ अक्षर पासवर्डसह",
-    "demoAdmin": "डेमो: admin@jeevandoot.org वापरा कोणत्याही 8+ अक्षर पासवर्डसह",
+    "demoDoctor": "डेमो: doctor@clinixconnect.org वापरा कोणत्याही 8+ अक्षर पासवर्डसह",
+    "demoAdmin": "डेमो: admin@clinixconnect.org वापरा कोणत्याही 8+ अक्षर पासवर्डसह",
     "loginToDashboard": "डॅशबोर्डवर लॉगिन करा",
     "secureSignIn": "सुरक्षित साइन इन",
     "doctorLogin": "डॉक्टर लॉगिन",
@@ -169,7 +169,7 @@
     "adminLogin": "प्रशासक लॉगिन",
     "adminLoginSubtitle": "प्लॅटफॉर्म प्रशासकांसाठी सुरक्षित प्रवेश",
     "doctorIllustrationTitle": "प्रत्येक उंबरठ्यापर्यंत पोहोचणारी आरोग्यसेवा.",
-    "doctorIllustrationText": "JeevanDoot डॉक्टर, आरोग्य कर्मचारी आणि तज्ञांना अखंड ग्रामीण काळजीसाठी एकत्र आणते.",
+    "doctorIllustrationText": "ClinixConnect डॉक्टर, आरोग्य कर्मचारी आणि तज्ञांना अखंड ग्रामीण काळजीसाठी एकत्र आणते.",
     "doctorIllustrationVaccines": "लसीकरण मोहिमा",
     "doctorIllustrationPrescriptions": "ई-प्रिस्क्रिप्शन",
     "doctorIllustrationSurveillance": "थेट पाळत ठेवणे",
@@ -231,7 +231,7 @@
     "smsNotifs": "एसएमएस सूचना",
     "smsNotifsDesc": "टेक्स्ट मेसेजद्वारे त्वरित सूचना",
     "appNotifs": "इन-ॲप सूचना",
-    "appNotifsDesc": "JeevanDoot मध्ये रिअल-टाइम सूचना",
+    "appNotifsDesc": "ClinixConnect मध्ये रिअल-टाइम सूचना",
     "language": "भाषा",
     "saveChanges": "बदल जतन करा",
     "settingsSaved": "सेटिंग्ज जतन झाल्या.",
@@ -497,7 +497,7 @@
     "quickReference": "क्विक संदर्भ",
     "quickRef1": "• एकाच प्रिस्क्रिप्शनमध्ये अनेक औषधे जोडा.",
     "quickRef2": "• जतन करण्यापूर्वी कोणतेही औषध संपादित किंवा काढा.",
-    "quickRef3": "• ई-प्रिस्क्रिप्शन JeevanDoot द्वारे डिजिटल स्वाक्षरी केलेले आहेत.",
+    "quickRef3": "• ई-प्रिस्क्रिप्शन ClinixConnect द्वारे डिजिटल स्वाक्षरी केलेले आहेत.",
     "quickRef4": "• स्मरणपत्रे रुग्णाच्या फोनवर आपोआप सिंक होतात.",
     "addAtLeastOne": "प्रथम किमान एक औषध जोडा",
     "cannotAddMissing": "औषध जोडता येत नाही. गहाळ: {{fields}}",
@@ -865,7 +865,7 @@
     "added": "डॉक्टर {{id}} जोडले",
     "statusToggled": "{{name}} स्थिती बदलली",
     "specialtyPlaceholder": "उदा. जनरल फिजिशियन",
-    "emailPlaceholder": "doctor@jeevandoot.org",
+    "emailPlaceholder": "doctor@clinixconnect.org",
     "phonePlaceholder": "+91 98765 43210",
     "totalDoctors": "एकूण डॉक्टर",
     "onlineNow": "आता ऑनलाइन",

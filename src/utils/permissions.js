@@ -1,7 +1,7 @@
 import { ROLES } from './constants';
 
 /**
- * Permission matrix for the JeevanDoot platform.
+ * Permission matrix for the ClinixConnect platform.
  * Role hierarchy: admin > doctor
  */
 const PERMISSIONS = {
@@ -53,7 +53,6 @@ export const hasAny = (role, permissions) =>
  */
 export const PORTAL_SCOPES = {
   admin: { label: 'Full Platform', scope: 'all' },
-  ngo: { label: 'Regional (NGO)', scope: 'region' },
   government: { label: 'District (Government)', scope: 'district' },
 };
 

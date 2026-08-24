@@ -87,7 +87,7 @@ const downloadBlob = (content, filename, mime) => {
 const filenameStamp = (report) => formatDate(reportDate(report), 'yyyy-MM-dd');
 
 export const reportBaseName = (report) =>
-  `JeevanDoot_Health_Impact_Report_${filenameStamp(report)}`;
+  `ClinixConnect_Health_Impact_Report_${filenameStamp(report)}`;
 
 /* ------------------------------------------------------------------ */
 /* PDF                                                                  */
@@ -157,7 +157,7 @@ export const downloadReportPDF = (report = {}, context = {}) => {
   doc.setTextColor(...PRIMARY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
-  doc.text('JeevanDoot', marginX, 52);
+  doc.text('ClinixConnect', marginX, 52);
   doc.setTextColor(...SECONDARY);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -178,94 +178,61 @@ export const downloadReportPDF = (report = {}, context = {}) => {
 
   y = 108;
 
-  /* Report title */
-  doc.setTextColor(...ON_SURFACE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  const titleLines = doc.splitTextToSize(norm(report.title) || 'Health Impact Report', contentWidth);
-  doc.text(titleLines, marginX, y);
-  y += titleLines.length * 22 + 6;
-
-  sectionTitle('Report Overview');
-  labelValue('Time Period', period);
+  sectionTitle(report.title || 'Health Impact Report');
+  labelValue('Report Period', period);
   labelValue('Region', region);
-  labelValue('Generated On', formatDate(generatedOn, 'MMM d, yyyy • h:mm a'));
-  labelValue('Date Range', `${formatDate(from, 'MMM d, yyyy')} — ${formatDate(to, 'MMM d, yyyy')}`);
+  labelValue('Date Range', `${formatDate(from, 'MMM d, yyyy')} to ${formatDate(to, 'MMM d, yyyy')}`);
 
-  /* KPIs */
+  ensureSpace(90);
   sectionTitle('Key Performance Indicators');
-  const kpiRows = [
-    ['Resolution Rate', norm(report.resolutionRate) ? `${report.resolutionRate}%` : '—'],
-    ['Patients Served', norm(report.patientsServed) || '—'],
-    ['SDG Alignment', norm(report.sdgAlignment) || '—'],
-  ];
-  ensureSpace(70);
   autoTable(doc, {
     startY: y,
-    head: [['KPI', 'Value']],
-    body: kpiRows,
+    head: [['KPI Metric', 'Value']],
+    body: [
+      ['Resolution Rate', report.resolutionRate != null ? `${report.resolutionRate}%` : '—'],
+      ['Patients Served', norm(report.patientsServed) || '—'],
+      ['SDG Alignment', norm(report.sdgAlignment) || '—'],
+    ],
     margin: { left: marginX, right: marginX },
-    styles: { fontSize: 10.5, cellPadding: 7, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
+    styles: { fontSize: 9.5, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
     headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [246, 249, 243] },
   });
   y = (doc.lastAutoTable?.finalY || y) + 20;
 
-  /* Condition trends: drawn bar chart + table */
   const trends = Array.isArray(report.conditionTrends) ? report.conditionTrends : [];
   if (trends.length > 0) {
     sectionTitle('Disease / Health Statistics');
-    const maxVal = Math.max(...trends.map((c) => Number(c.value) || 0), 1);
-    const chartW = contentWidth - 120;
-    const rowH = 20;
-    const chartTop = y + 14;
-    let cy = chartTop;
-    trends.forEach((c) => {
-      const w = Math.max(4, (Number(c.value) || 0) / maxVal) * chartW;
-      doc.setFillColor(...PRIMARY);
-      doc.roundedRect(marginX + 120, cy, w, 12, 2, 2, 'F');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor(...ON_SURFACE_VARIANT);
-      doc.text(String(c.label), marginX, cy + 9);
-      doc.setTextColor(...ON_SURFACE);
-      doc.setFont('helvetica', 'bold');
-      doc.text(String(c.value), marginX + 126 + w, cy + 9);
-      cy += rowH;
-    });
-    y = cy + 18;
-    ensureSpace(60);
+    ensureSpace(80);
     autoTable(doc, {
       startY: y,
-      head: [['Condition', 'Trend Index']],
+      head: [['Condition / Disease', 'Trend Index']],
       body: trends.map((c) => [norm(c.label) || '—', norm(c.value) || '—']),
       margin: { left: marginX, right: marginX },
-      styles: { fontSize: 10, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
+      styles: { fontSize: 9.5, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
       headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [246, 249, 243] },
     });
     y = (doc.lastAutoTable?.finalY || y) + 20;
   }
 
-  /* Demographics */
   const demographics = report.demographics || {};
   const demoEntries = Object.entries(demographics);
   if (demoEntries.length > 0) {
     sectionTitle('Demographics');
-    ensureSpace(60);
+    ensureSpace(80);
     autoTable(doc, {
       startY: y,
-      head: [['Population Segment', 'Share']],
-      body: demoEntries.map(([key, value]) => [String(key), `${value}%`]),
+      head: [['Population Segment', 'Share (%)']],
+      body: demoEntries.map(([key, value]) => [key, `${value}%`]),
       margin: { left: marginX, right: marginX },
-      styles: { fontSize: 10, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
+      styles: { fontSize: 9.5, cellPadding: 6, textColor: ON_SURFACE, lineColor: OUTLINE, lineWidth: 0.5 },
       headStyles: { fillColor: PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [246, 249, 243] },
     });
     y = (doc.lastAutoTable?.finalY || y) + 20;
   }
 
-  /* Insights */
   const insights = buildInsights(report);
   if (insights.length > 0) {
     sectionTitle('Report Insights');
@@ -279,7 +246,7 @@ export const downloadReportPDF = (report = {}, context = {}) => {
   doc.setTextColor(...ON_SURFACE_VARIANT);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Generated electronically by JeevanDoot', marginX, pageHeight - 48);
+  doc.text('Generated electronically by ClinixConnect', marginX, pageHeight - 48);
   doc.text('Rural Community Care Platform', pageWidth - marginX, pageHeight - 48, { align: 'right' });
 
   doc.save(`${reportBaseName(report)}.pdf`);
@@ -303,7 +270,7 @@ export const buildReportCsv = (report = {}, context = {}) => {
   const { from, to } = getRangeDates(period);
   const rows = [];
 
-  rows.push(['JeevanDoot Health Impact Report']);
+  rows.push(['ClinixConnect Health Impact Report']);
   rows.push([]);
   rows.push(['Report Title', norm(report.title)]);
   rows.push(['Generated On', generatedOn.toISOString()]);
@@ -397,7 +364,7 @@ export const buildReportHTML = (report = {}, context = {}) => {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${norm(report.title) || 'JeevanDoot Health Impact Report'}</title>
+<title>${norm(report.title) || 'ClinixConnect Health Impact Report'}</title>
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e1c10; margin: 0; padding: 32px; background: #f5f5f0; }
   .report { max-width: 860px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
@@ -428,7 +395,7 @@ export const buildReportHTML = (report = {}, context = {}) => {
 <body>
 <div class="report">
   <div class="brand">
-    <h1>JeevanDoot</h1>
+    <h1>ClinixConnect</h1>
     <p>Rural Community Care</p>
   </div>
   <div class="body">
@@ -460,7 +427,7 @@ export const buildReportHTML = (report = {}, context = {}) => {
     ${insights ? `<h2>Report Insights</h2><ul class="insights">${insights}</ul>` : ''}
 
     <div class="footer">
-      <span>Generated electronically by JeevanDoot</span>
+      <span>Generated electronically by ClinixConnect</span>
       <span>Rural Community Care Platform</span>
     </div>
   </div>

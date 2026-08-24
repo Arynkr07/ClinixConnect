@@ -1,12 +1,6 @@
 import { api, isMockMode } from './api';
-import { sleep } from '../utils/helpers';
+import { sleep, generatePatientId } from '../utils/helpers';
 import { notificationService } from './notificationService';
-
-const addDays = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-};
 
 const toLocalDate = (date) => {
   if (!date) return '';
@@ -20,12 +14,35 @@ function getStoredAppointments() {
     const raw = localStorage.getItem('jd_appointments_db');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch {
     /* ignore */
   }
-  return [];
+
+  return [
+    {
+      id: 'apt-1',
+      patient: {
+        id: generatePatientId('Gopal', new Date()),
+        name: 'Gopal Prasad',
+        village: 'Amroli',
+      },
+      doctor: {
+        id: 'dr-1',
+        name: 'Dr. Rajesh Sharma',
+        specialty: 'General Medicine',
+      },
+      purpose: 'Fever and Persistent Cough',
+      date: new Date().toISOString().slice(0, 10),
+      startTime: '09:30',
+      endTime: '10:00',
+      status: 'upcoming',
+      urgency: 'Medium',
+      mode: 'In-Person',
+      chiefComplaint: 'Fever 101°F for 3 days, dry cough, weakness.',
+    },
+  ];
 }
 
 function saveAppointments(items) {
@@ -42,10 +59,12 @@ const ACTIVE_SLOT_HOLDS = new Map();
 const normalize = (appointment) => {
   const patient = appointment.patient || {};
   const doctor = appointment.doctor || {};
+  const pName = patient.name || patient.personalInfo?.fullName || appointment.patientName || 'Patient';
+  const pId = patient.id || patient.patientId || appointment.patientId || generatePatientId(pName);
   return {
     id: appointment.id || appointment._id,
-    patientId: patient.id || patient.patientId || appointment.patientId || 'JD-1209',
-    patientName: patient.name || patient.personalInfo?.fullName || appointment.patientName || 'Gopal Prasad',
+    patientId: pId,
+    patientName: pName,
     patientVillage: patient.village || patient.personalInfo?.village || appointment.patientVillage || 'Amroli',
     doctorId: doctor.id || doctor.doctorId || appointment.doctorId || 'dr-1',
     doctorName: doctor.name || appointment.doctorName || 'Dr. Rajesh Sharma',
@@ -72,9 +91,9 @@ const normalize = (appointment) => {
 export function generateGoogleCalendarLink(appointment) {
   const title = encodeURIComponent(`Medical Consultation with ${appointment.doctorName || 'Doctor'}`);
   const details = encodeURIComponent(
-    `Healthcare Consultation: ${appointment.purpose || 'General'}\nChief Complaint: ${appointment.chiefComplaint || 'N/A'}\nMode: ${appointment.notes || 'In-person'}\nSecured by JeevanDoot`
+    `Healthcare Consultation: ${appointment.purpose || 'General'}\nChief Complaint: ${appointment.chiefComplaint || 'N/A'}\nMode: ${appointment.notes || 'In-person'}\nSecured by ClinixConnect`
   );
-  const location = encodeURIComponent('JeevanDoot Rural Health Portal / Teleconsultation');
+  const location = encodeURIComponent('ClinixConnect Rural Health Portal / Teleconsultation');
   
   const dateStr = toLocalDate(appointment.date).replace(/-/g, '');
   const startTime = (appointment.startTime || '10:00').replace(':', '');
@@ -96,16 +115,16 @@ export function downloadIcsFile(appointment) {
   const icsData = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//JeevanDoot//Healthcare Appointment Manager//EN',
+    'PRODID:-//ClinixConnect//Healthcare Appointment Manager//EN',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
-    `UID:jd-${norm.id}@jeevandoot.org`,
+    `UID:jd-${norm.id}@clinixconnect.org`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTSTART:${dateStr}T${start}`,
     `DTEND:${dateStr}T${end}`,
     `SUMMARY:Medical Consultation with ${norm.doctorName}`,
     `DESCRIPTION:Appointment: ${norm.purpose}\\nChief Complaint: ${norm.chiefComplaint}\\nMode: ${norm.notes}`,
-    'LOCATION:JeevanDoot Healthcare Clinic',
+    'LOCATION:ClinixConnect Healthcare Clinic',
     'STATUS:CONFIRMED',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -247,6 +266,17 @@ export const appointmentService = {
 
       ACTIVE_SLOT_HOLDS.delete(slotKey);
 
+      // Build the Google Calendar web link immediately so it's embedded in the local entry
+      const calLink = generateGoogleCalendarLink({
+        doctorName: payload.doctorName || 'Doctor',
+        purpose: payload.purpose || 'General Consultation',
+        chiefComplaint: payload.chiefComplaint || '',
+        notes: payload.notes || 'In-person',
+        date: targetDate,
+        startTime: payload.startTime || '09:00',
+        endTime: payload.endTime || '',
+      });
+
       const entry = {
         id: `apt-${Date.now()}`,
         patient: {
@@ -271,6 +301,10 @@ export const appointmentService = {
         suggestedQuestions: payload.suggestedQuestions || [],
         preVisitSummary: payload.preVisitSummary || null,
         postVisitSummary: '',
+        googleCalendarLink: calLink,
+        googleCalendarEventId: '',
+        patientEmail: payload.patientEmail || '',
+        doctorEmail: payload.doctorEmail || '',
       };
 
       const updated = [entry, ...items];
@@ -335,7 +369,12 @@ export const appointmentService = {
       preVisitSummary: payload.preVisitSummary,
     });
 
+    // Ensure googleCalendarLink is present (use backend link, else generate web link)
     const norm = normalize(data);
+    if (!norm.googleCalendarLink) {
+      norm.googleCalendarLink = generateGoogleCalendarLink(norm);
+    }
+
     try {
       const stored = getStoredAppointments();
       saveAppointments([norm, ...stored]);
@@ -395,8 +434,6 @@ export const appointmentService = {
         try {
           const patientId = apt.patient?.id || apt.patientId;
           const doctorId = apt.doctor?.id || apt.doctorId;
-          const patientEmail = apt.patientEmail || apt.patient?.email;
-          const doctorEmail = apt.doctorEmail || apt.doctor?.email;
 
           if (patientId) {
             notificationService.sendToUser(patientId, {
@@ -459,6 +496,20 @@ export const appointmentService = {
     const targetDate = toLocalDate(newDate);
     const patch = { date: targetDate, startTime: newStartTime, endTime: newEndTime, status: 'upcoming' };
 
+    // Regenerate the Google Calendar link for the new date/time before saving
+    const items = getStoredAppointments();
+    const existing = items.find((a) => String(a.id).toLowerCase() === String(id).toLowerCase() || String(a._id).toLowerCase() === String(id).toLowerCase());
+    const newCalLink = generateGoogleCalendarLink({
+      doctorName: existing?.doctor?.name || existing?.doctorName || 'Doctor',
+      purpose: existing?.purpose || 'General Consultation',
+      chiefComplaint: existing?.chiefComplaint || '',
+      notes: existing?.notes || 'In-person',
+      date: targetDate,
+      startTime: newStartTime,
+      endTime: newEndTime,
+    });
+    patch.googleCalendarLink = newCalLink;
+
     const updated = await this.update(id, patch);
 
     if (updated) {
@@ -487,7 +538,7 @@ export const appointmentService = {
         console.warn(e);
       }
 
-      // Backend API call for SMTP email dispatch
+      // Backend API call for SMTP email dispatch + Google Calendar event update
       try {
         api.put(`/appointments/${id}`, patch).catch(() => {});
       } catch (e) {

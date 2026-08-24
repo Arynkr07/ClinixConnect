@@ -316,7 +316,7 @@ export default function ProfileMenu() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-container-low rounded-lg p-4">
               <div className="min-w-0">
                 <p className="font-bold text-on-surface text-sm">{t('settings.supportTeam')}</p>
-                <p className="text-label-md text-on-surface-variant">support@jeevandoot.org · +91 1800 123 456</p>
+                <p className="text-label-md text-on-surface-variant">support@clinixconnect.org · +91 1800 123 456</p>
               </div>
               <Button
                 variant="outline"

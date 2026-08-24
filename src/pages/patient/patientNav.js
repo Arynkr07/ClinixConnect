@@ -1,5 +1,5 @@
 /**
- * Shared navigation for the JeevanDoot Patient Portal.
+ * Shared navigation for the ClinixConnect Patient Portal.
  */
 export const PATIENT_NAV = [
   { labelKey: 'dashboard', defaultLabel: 'Dashboard', to: '/patient/dashboard', icon: 'dashboard', end: true },

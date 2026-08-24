@@ -5,7 +5,7 @@ const getStorageKey = (userId) => `jd_notifications_${userId || 'guest'}`;
 const DEFAULT_WELCOME_NOTIFS = [
   {
     id: 'notif-system-welcome',
-    title: 'Welcome to JeevanDoot',
+    title: 'Welcome to ClinixConnect',
     description: 'Your rural community health portal is connected and active.',
     time: '5m ago',
     icon: 'health_and_safety',
@@ -97,7 +97,7 @@ export const notificationService = {
       };
       const updated = [newNotif, ...existing.filter((n) => n.id !== newNotif.id)];
       localStorage.setItem(key, JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('jd_notification_event', { detail: { userId, notification: newNotif } }));
+      window.dispatchEvent(new window.CustomEvent('jd_notification_event', { detail: { userId, notification: newNotif } }));
       return newNotif;
     } catch (e) {
       console.warn('Failed to send notification:', e);
@@ -111,7 +111,7 @@ export const notificationService = {
       const list = this.getUserNotifications(userId);
       const updated = list.map((n) => (n.id === notifId ? { ...n, unread: false } : n));
       localStorage.setItem(key, JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('jd_notification_event', { detail: { userId } }));
+      window.dispatchEvent(new window.CustomEvent('jd_notification_event', { detail: { userId } }));
     } catch (e) {
       console.warn(e);
     }
@@ -124,7 +124,7 @@ export const notificationService = {
       const list = this.getUserNotifications(userId);
       const updated = list.map((n) => ({ ...n, unread: false }));
       localStorage.setItem(key, JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent('jd_notification_event', { detail: { userId } }));
+      window.dispatchEvent(new window.CustomEvent('jd_notification_event', { detail: { userId } }));
     } catch (e) {
       console.warn(e);
     }

@@ -30,14 +30,14 @@ export const calendarService = {
   /**
    * Generates a direct Google Calendar Web Link for 1-click sync
    */
-  generateGoogleCalendarWebLink({ summary, description, location = 'JeevanDoot Healthcare Clinic', dateStr, startTime, endTime }) {
+  generateGoogleCalendarWebLink({ summary, description, location = 'ClinixConnect Healthcare Clinic', dateStr, startTime, endTime }) {
     const formattedDate = String(dateStr || '').slice(0, 10).replace(/-/g, '');
     const startFormatted = String(startTime || '10:00').replace(':', '') + '00';
     const endFormatted = String(endTime || '10:30').replace(':', '') + '00';
 
     const dates = `${formattedDate}T${startFormatted}/${formattedDate}T${endFormatted}`;
     const text = encodeURIComponent(summary || 'Doctor Consultation');
-    const details = encodeURIComponent(description || 'Consultation via JeevanDoot');
+    const details = encodeURIComponent(description || 'Consultation via ClinixConnect');
     const loc = encodeURIComponent(location);
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}&location=${loc}&dates=${dates}`;
@@ -46,7 +46,7 @@ export const calendarService = {
   /**
    * Create Google Calendar Event via OAuth 2.0 for both Doctor & Patient on Booking
    */
-  async createOAuthCalendarEvent({ summary, description, location = 'JeevanDoot Clinic', dateStr, startTime, endTime, patientEmail, doctorEmail }) {
+  async createOAuthCalendarEvent({ summary, description, location = 'ClinixConnect Clinic', dateStr, startTime, endTime, patientEmail, doctorEmail }) {
     const token = await getAccessToken();
     const dateFormatted = String(dateStr || '').slice(0, 10);
     const startIso = `${dateFormatted}T${startTime || '10:00'}:00`;
@@ -73,7 +73,7 @@ export const calendarService = {
         },
         body: JSON.stringify({
           summary: summary || 'Doctor Consultation',
-          description: description || 'Healthcare consultation booked via JeevanDoot',
+          description: description || 'Healthcare consultation booked via ClinixConnect',
           location,
           start: { dateTime: startIso, timeZone: 'Asia/Kolkata' },
           end: { dateTime: endIso, timeZone: 'Asia/Kolkata' },
@@ -100,7 +100,7 @@ export const calendarService = {
   /**
    * Update / Reschedule Google Calendar Event via OAuth 2.0
    */
-  async updateOAuthCalendarEvent({ eventId, summary, description, location = 'JeevanDoot Clinic', dateStr, startTime, endTime, patientEmail, doctorEmail }) {
+  async updateOAuthCalendarEvent({ eventId, summary, description, location = 'ClinixConnect Clinic', dateStr, startTime, endTime, patientEmail, doctorEmail }) {
     if (!eventId) return { success: false };
     const token = await getAccessToken();
     if (!token) return { success: false };
@@ -122,7 +122,7 @@ export const calendarService = {
         },
         body: JSON.stringify({
           summary: summary || 'Doctor Consultation (Rescheduled)',
-          description: description || 'Healthcare consultation rescheduled via JeevanDoot',
+          description: description || 'Healthcare consultation rescheduled via ClinixConnect',
           location,
           start: { dateTime: startIso, timeZone: 'Asia/Kolkata' },
           end: { dateTime: endIso, timeZone: 'Asia/Kolkata' },

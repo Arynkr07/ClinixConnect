@@ -1,5 +1,5 @@
 import { api, isMockMode } from './api';
-import { sleep } from '../utils/helpers';
+import { sleep, generatePatientId } from '../utils/helpers';
 import { appointmentService } from './appointmentService';
 
 function getStoredPatients() {
@@ -23,7 +23,7 @@ function getStoredPatients() {
       users
         .filter((u) => u.role === 'patient')
         .forEach((p) => {
-          const pid = p.patientId || p.id;
+          const pid = p.patientId || p.id || generatePatientId(p.name);
           patientsMap.set(pid, {
             id: pid,
             name: p.name,
@@ -35,13 +35,92 @@ function getStoredPatients() {
             status: 'Waiting',
             lastCheckIn: 'Recently',
             vitals: null,
-            summary: ['Patient registered in JeevanDoot digital healthcare network.'],
+            summary: ['Patient registered in ClinixConnect digital healthcare network.'],
           });
         });
     }
   } catch {
     /* ignore */
   }
+
+  const defaultPatients = [
+    {
+      id: 'Gopal20260824101500',
+      patientId: 'Gopal20260824101500',
+      name: 'Gopal Prasad',
+      age: 45,
+      gender: 'Male',
+      village: 'Amroli',
+      complaint: 'Fever 101°F for 3 days and persistent cough',
+      risk: 'Moderate',
+      status: 'Waiting',
+      lastCheckIn: '10 mins ago',
+      vitals: { bp: '128/84', temp: '101°F', weight: 68, pulse: 82 },
+      summary: ['Fever 101°F for 3 days', 'Persistent dry cough', 'General body weakness'],
+    },
+    {
+      id: 'Sunita20260824121530',
+      patientId: 'Sunita20260824121530',
+      name: 'Sunita Devi',
+      age: 38,
+      gender: 'Female',
+      village: 'Devgram',
+      complaint: 'Routine Antenatal & Maternal Checkup',
+      risk: 'Low',
+      status: 'Waiting',
+      lastCheckIn: '25 mins ago',
+      vitals: { bp: '118/76', temp: '98.4°F', weight: 58, pulse: 72 },
+      summary: ['Second trimester routine evaluation', 'Normal vitals'],
+    },
+    {
+      id: 'Ramesh20260824091522',
+      patientId: 'Ramesh20260824091522',
+      name: 'Ramesh Kumar',
+      age: 52,
+      gender: 'Male',
+      village: 'Kanker Block',
+      complaint: 'Chest discomfort and shortness of breath during exertion',
+      risk: 'Critical',
+      status: 'Waiting',
+      lastCheckIn: '5 mins ago',
+      vitals: { bp: '145/92', temp: '98.6°F', weight: 75, pulse: 98 },
+      summary: ['Hypertension history', 'Exertional dyspnea'],
+    },
+    {
+      id: 'Priya20260824143000',
+      patientId: 'Priya20260824143000',
+      name: 'Priya Sahu',
+      age: 29,
+      gender: 'Female',
+      village: 'Bijapur Sector',
+      complaint: 'Pediatric consultation for infant fever and vomiting',
+      risk: 'Moderate',
+      status: 'Waiting',
+      lastCheckIn: '15 mins ago',
+      vitals: { bp: '110/70', temp: '99.8°F', weight: 52, pulse: 78 },
+      summary: ['Infant gastrointestinal infection suspected'],
+    },
+    {
+      id: 'Arjun20260824110500',
+      patientId: 'Arjun20260824110500',
+      name: 'Arjun Singh',
+      age: 60,
+      gender: 'Male',
+      village: 'Dhamtari',
+      complaint: 'Joint pain in knees and lower back stiffness',
+      risk: 'Low',
+      status: 'Waiting',
+      lastCheckIn: '40 mins ago',
+      vitals: { bp: '130/80', temp: '98.2°F', weight: 70, pulse: 70 },
+      summary: ['Osteoarthritis evaluation'],
+    },
+  ];
+
+  defaultPatients.forEach((dp) => {
+    if (!patientsMap.has(dp.id)) {
+      patientsMap.set(dp.id, dp);
+    }
+  });
 
   const list = Array.from(patientsMap.values());
   localStorage.setItem('jd_patients_db', JSON.stringify(list));
@@ -140,7 +219,7 @@ export const patientService = {
     if (isMockMode()) {
       await sleep(300);
       const all = getStoredPatients();
-      const newId = payload.id || `JD-${Math.floor(Math.random() * 9000) + 1000}`;
+      const newId = payload.id || payload.patientId || generatePatientId(payload.name);
       const newPatient = {
         id: newId,
         name: payload.name,

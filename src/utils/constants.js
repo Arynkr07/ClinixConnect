@@ -1,4 +1,4 @@
-export const APP_NAME = 'JeevanDoot';
+export const APP_NAME = 'ClinixConnect';
 export const APP_TAGLINE = 'Rural Community Care';
 
 export const ROLES = {
@@ -34,7 +34,7 @@ export const ROLE_META = {
   },
 };
 
-export const REGISTRATION_ROLES = ['patient', 'doctor', 'admin'];
+export const REGISTRATION_ROLES = ['patient', 'doctor'];
 
 export const ROLE_PORTAL = {
   admin: '/admin/dashboard',
@@ -53,6 +53,12 @@ export const SPECIALIZATIONS = [
   'Pulmonology',
   'ENT Specialist',
   'Ophthalmology',
+];
+
+export const DOCTOR_SHIFTS = [
+  { id: 'Day Shift', label: 'Day Shift (09:00 – 17:00)', start: '09:00', end: '17:00', icon: 'wb_sunny' },
+  { id: 'Night Shift', label: 'Night Shift (21:00 – 05:00)', start: '21:00', end: '05:00', icon: 'nights_stay' },
+  { id: 'Custom', label: 'Custom Working Hours', start: '09:00', end: '17:00', icon: 'schedule' },
 ];
 
 export const SLOT_DURATIONS = [15, 30, 45, 60];
@@ -179,11 +185,7 @@ export const MEDICATION_SUGGESTIONS = [
   'Zinc',
 ];
 
-export const REFERRAL_DESTINATIONS = [
-  { value: 'agh', label: 'Amroli General Hospital (Primary Care Facility)' },
-  { value: 'dcc', label: 'District Cardiology Center (Specialist Hospital)' },
-  { value: 'drr', label: 'Dr. Rajeev (Orthopedic Specialist)' },
-];
+
 
 export const COMMON_MEDICINE_SCHEDULES = ['Morning', 'Afternoon', 'Night'];
 

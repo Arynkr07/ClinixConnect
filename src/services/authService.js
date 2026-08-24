@@ -6,17 +6,12 @@ export const authService = {
       throw new Error('Email and password are required.');
     }
 
-    try {
-      const response = await api.post('/auth/login', {
-        role,
-        email: credentials.email.trim().toLowerCase(),
-        password: credentials.password,
-      });
-      return response.data || response;
-    } catch (err) {
-      // If server returned specific message (e.g. Invalid email or password), rethrow it
-      throw err;
-    }
+    const response = await api.post('/auth/login', {
+      role,
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
+    });
+    return response.data || response;
   },
 
   async register(payload) {
@@ -51,7 +46,7 @@ export const authService = {
     try {
       const response = await api.post('/auth/reset-password', { email, otpCode, newPassword });
       return response.data || response;
-    } catch (err) {
+    } catch {
       return { success: true, message: 'Password reset completed.' };
     }
   },

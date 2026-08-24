@@ -1,9 +1,9 @@
 {
-  "name": "jeevandoot-api",
+  "name": "clinixconnect-api",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "JeevanDoot / SwasthyaLink REST API (Express + MongoDB)",
+  "description": "ClinixConnect REST API (Express + MongoDB)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

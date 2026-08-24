@@ -93,7 +93,7 @@ export function generateLocalPreVisitSummary(symptoms = '', severity = 'Moderate
     suggestedQuestions: suggestedQuestions.slice(0, 3),
     rawSymptoms: symptoms,
     generatedAt: new Date().toISOString(),
-    provider: 'JeevanDoot Clinical AI Engine',
+    provider: 'ClinixConnect Clinical AI Engine',
   };
 }
 
