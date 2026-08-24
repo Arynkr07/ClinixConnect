@@ -4,21 +4,19 @@ import env from '../config/env.js';
 let transporter = null;
 
 function getTransporter() {
-  // Always recreate if env changes or transporter is null
-  const smtpUser = env.SMTP_EMAIL;
-  const smtpPass = env.SMTP_APP_PASSWORD;
+  const smtpUser = process.env.SMTP_EMAIL || env.SMTP_EMAIL;
+  const smtpPass = process.env.SMTP_APP_PASSWORD || env.SMTP_APP_PASSWORD;
 
-  // Don't attempt to create transporter if credentials are missing or placeholder
-  if (!smtpUser || !smtpPass || smtpUser === 'asdaiso@gmail.com' || smtpPass === 'hzhdresd') {
-    console.warn('[email] SMTP credentials are not configured. Set SMTP_EMAIL and SMTP_APP_PASSWORD on Render.');
+  if (!smtpUser || !smtpPass) {
+    console.warn('[email] SMTP credentials not set on Render. Please ensure SMTP_EMAIL and SMTP_APP_PASSWORD are configured.');
     return null;
   }
 
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: env.SMTP_SERVER || 'smtp.gmail.com',
-      port: Number(env.SMTP_PORT) || 587,
-      secure: Number(env.SMTP_PORT) === 465,
+      host: process.env.SMTP_SERVER || env.SMTP_SERVER || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || env.SMTP_PORT) || 587,
+      secure: Number(process.env.SMTP_PORT || env.SMTP_PORT) === 465,
       auth: {
         user: smtpUser,
         pass: smtpPass,
