@@ -249,6 +249,27 @@ export default function MedicationTracker() {
     notify({ type: 'success', message: `Added reminder for ${customForm.medicineName}` });
   };
 
+  const handleClearCompleted = () => {
+    const takenIds = Object.keys(takenStatus).filter((k) => takenStatus[k]);
+    if (takenIds.length === 0) {
+      notify({ type: 'info', message: 'No completed doses to clear.' });
+      return;
+    }
+
+    try {
+      const rawDeleted = localStorage.getItem('jd_deleted_reminders');
+      const deletedList = rawDeleted ? JSON.parse(rawDeleted) : [];
+      takenIds.forEach((id) => {
+        if (!deletedList.includes(id)) deletedList.push(id);
+      });
+      localStorage.setItem('jd_deleted_reminders', JSON.stringify(deletedList));
+      window.dispatchEvent(new window.CustomEvent('jd_med_status_updated'));
+      notify({ type: 'success', message: `Auto-cleared ${takenIds.length} completed medication reminders.` });
+    } catch {
+      /* ignore */
+    }
+  };
+
   const filtered = schedule.filter((m) => activeSlot === 'All' || m.slot === activeSlot);
 
   return (
@@ -280,9 +301,14 @@ export default function MedicationTracker() {
             ))}
           </div>
 
-          <Button size="sm" icon="add_alarm" onClick={() => setShowAddModal(true)}>
-            Add Custom Reminder
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" icon="cleaning_services" onClick={handleClearCompleted}>
+              Auto-Clear Completed Doses
+            </Button>
+            <Button size="sm" icon="add_alarm" onClick={() => setShowAddModal(true)}>
+              Add Custom Reminder
+            </Button>
+          </div>
         </div>
 
         {loading ? (

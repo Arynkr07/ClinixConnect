@@ -30,6 +30,8 @@ const TRIAGE_LEGEND = [
   { color: 'green', labelKey: 'queue.triageGreen' },
 ];
 
+import { appointmentService } from '../../services/appointmentService';
+
 export default function PatientQueue() {
   const { t } = useTranslation();
   const sidebarItems = doctorSidebarItems(t);
@@ -43,10 +45,50 @@ export default function PatientQueue() {
     let active = true;
     const load = async () => {
       setLoading(true);
-      const all = await patientService.getAll();
-      if (!active) return;
-      setPatients(all);
-      setLoading(false);
+      try {
+        const [patientsData, appointmentsData] = await Promise.all([
+          patientService.getAll(),
+          appointmentService.getAppointments({ status: 'upcoming' }),
+        ]);
+
+        if (!active) return;
+
+        // Map real booked appointments to Doctor Queue items
+        const aptQueueItems = (appointmentsData || []).map((apt) => {
+          const pName = apt.patientName || apt.patient?.name || 'Patient';
+          const pId = apt.patientId || apt.patient?.id || (String(apt.id).startsWith('JD-') ? apt.id : generatePatientId(pName));
+          const urgencyStr = apt.urgency || 'Low';
+          const riskLevel = urgencyStr === 'Critical' ? 'Critical' : urgencyStr === 'High' ? 'High' : urgencyStr === 'Medium' ? 'Moderate' : 'Low';
+
+          return {
+            id: apt.id || apt._id,
+            patientId: pId,
+            name: pName,
+            village: apt.patientVillage || apt.patient?.village || 'Amroli',
+            complaint: apt.chiefComplaint || apt.purpose || apt.symptoms || 'General Consultation',
+            status: apt.status === 'upcoming' ? 'Waiting' : apt.status,
+            risk: riskLevel,
+            lastCheckIn: apt.startTime ? `${apt.startTime} (Today)` : 'Just now',
+            isRealBooking: true,
+            appointment: apt,
+          };
+        });
+
+        // Merge real bookings at the top of the queue
+        const mergedMap = new Map();
+        aptQueueItems.forEach((item) => mergedMap.set(item.id, item));
+        patientsData.forEach((p) => {
+          if (!mergedMap.has(p.id)) {
+            mergedMap.set(p.id, p);
+          }
+        });
+
+        setPatients(Array.from(mergedMap.values()));
+      } catch (err) {
+        console.error('Failed to load queue:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
     };
     load();
     return () => {
