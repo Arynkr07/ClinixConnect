@@ -1,7 +1,7 @@
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { success, created, noContent } from '../utils/response.js';
-import { Appointment } from '../models/index.js';
+import { Appointment, User, Doctor, Patient, SlotHold } from '../models/index.js';
 import { notificationService } from '../services/notification.service.js';
 
 const APPOINTMENT_POPULATE = [

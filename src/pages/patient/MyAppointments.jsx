@@ -65,9 +65,10 @@ export default function MyAppointments() {
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status: 'cancelled' } : a))
       );
-      notify({ type: 'success', message: 'Appointment cancelled.' });
-    } catch {
-      notify({ type: 'error', message: 'Could not cancel appointment.' });
+      notify({ type: 'success', message: 'Appointment cancelled successfully.' });
+      loadAppointments();
+    } catch (err) {
+      notify({ type: 'error', message: err.message || 'Could not cancel appointment.' });
     }
   };
 
