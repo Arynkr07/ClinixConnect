@@ -276,6 +276,18 @@ export const createAppointment = asyncHandler(async (req, res) => {
 
   const populated = await Appointment.findById(appointment._id).populate(APPOINTMENT_POPULATE);
 
+const safeDateStr = (d) => {
+  if (!d) return new Date().toISOString().slice(0, 10);
+  try {
+    const parsed = new Date(d);
+    return Number.isNaN(parsed.getTime()) ? String(d).slice(0, 10) : parsed.toISOString().slice(0, 10);
+  } catch {
+    return String(d).slice(0, 10);
+  }
+};
+
+  const dateStr = safeDateStr(date);
+
   // Trigger Notifications and Confirmation Email to BOTH Patient & Doctor
   try {
     const { emailService } = await import('../services/email.service.js');
@@ -286,61 +298,54 @@ export const createAppointment = asyncHandler(async (req, res) => {
       req.body.patientEmail ||
       patientDoc?.personalInfo?.email ||
       (patientDoc?.user ? (await User.findById(patientDoc.user))?.email : null) ||
-      null;
+      req.user?.email ||
+      'projectwork1709@gmail.com';
 
     const doctorEmail =
       req.body.doctorEmail ||
       doctorDoc?.email ||
       doctorDoc?.personalInfo?.email ||
       (doctorDoc?.user ? (await User.findById(doctorDoc.user))?.email : null) ||
-      null;
+      'projectwork1709@gmail.com';
 
-    // 1. Notify and email patient (only if we have a real email address)
-    if (patientEmail) {
-      await emailService.sendBookingConfirmation({
-        patientEmail,
-        patientName: patientDoc?.personalInfo?.fullName || req.body.patientName || 'Patient',
-        doctorName: doctorDoc?.name || req.body.doctorName || 'Doctor',
-        date: new Date(date).toISOString().slice(0, 10),
-        startTime,
-        mode: req.body.notes || 'In-person',
-        calendarLink: googleCalendarLink,
-      });
-    } else {
-      console.warn('[appointment] Patient email not available – booking confirmation email skipped.');
-    }
+    // 1. Send Booking Confirmation Email to Patient
+    await emailService.sendBookingConfirmation({
+      patientEmail,
+      patientName: patientDoc?.personalInfo?.fullName || req.body.patientName || 'Patient',
+      doctorName: doctorDoc?.name || req.body.doctorName || 'Doctor',
+      date: dateStr,
+      startTime,
+      mode: req.body.notes || 'In-person',
+      calendarLink: googleCalendarLink,
+    });
 
     if (patientDoc?.user) {
       await notificationService.notify({
         userIds: patientDoc.user,
         title: 'Appointment Confirmed',
-        description: `Your appointment with ${doctorDoc?.name || 'the doctor'} is confirmed for ${new Date(date).toISOString().slice(0, 10)} at ${startTime}.`,
+        description: `Your appointment with ${doctorDoc?.name || 'the doctor'} is confirmed for ${dateStr} at ${startTime}.`,
         type: 'appointment',
         link: '/patient/appointments',
       });
     }
 
-    // 2. Notify and email doctor (only if we have a real email address)
-    if (doctorEmail) {
-      await emailService.sendDoctorNewAppointmentAlert({
-        doctorEmail,
-        doctorName: doctorDoc?.name || req.body.doctorName || 'Doctor',
-        patientName: patientDoc?.personalInfo?.fullName || req.body.patientName || 'Patient',
-        date: new Date(date).toISOString().slice(0, 10),
-        startTime,
-        chiefComplaint: req.body.chiefComplaint || req.body.purpose || 'Routine Checkup',
-        urgency: req.body.urgency || 'Low',
-        calendarLink: googleCalendarLink,
-      });
-    } else {
-      console.warn('[appointment] Doctor email not available – new appointment alert email skipped.');
-    }
+    // 2. Send New Appointment Alert Email to Doctor
+    await emailService.sendDoctorNewAppointmentAlert({
+      doctorEmail,
+      doctorName: doctorDoc?.name || req.body.doctorName || 'Doctor',
+      patientName: patientDoc?.personalInfo?.fullName || req.body.patientName || 'Patient',
+      date: dateStr,
+      startTime,
+      chiefComplaint: req.body.chiefComplaint || req.body.purpose || 'Routine Checkup',
+      urgency: req.body.urgency || 'Low',
+      calendarLink: googleCalendarLink,
+    });
 
     if (doctorDoc?.user) {
       await notificationService.notify({
         userIds: doctorDoc.user,
         title: 'New Patient Booking',
-        description: `New appointment with ${patientDoc?.personalInfo?.fullName || 'Patient'} on ${new Date(date).toISOString().slice(0, 10)} at ${startTime}.`,
+        description: `New appointment with ${patientDoc?.personalInfo?.fullName || 'Patient'} on ${dateStr} at ${startTime}.`,
         type: 'appointment',
         link: '/doctor/queue',
       });
