@@ -178,7 +178,7 @@ export default function AdminLogin() {
           </Link>
         </p>
         <p className="text-on-surface-variant">
-          Demo login: <span className="font-bold text-primary">admin@clinixconnect.org</span> (pass: any 8+ chars)
+          Demo login: <span className="font-bold text-primary">admin@clinixconnect.org</span> / <span className="font-bold text-primary">admin12345</span>
         </p>
       </div>
     </AuthLayout>

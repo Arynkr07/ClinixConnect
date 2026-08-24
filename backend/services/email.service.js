@@ -4,14 +4,27 @@ import env from '../config/env.js';
 let transporter = null;
 
 function getTransporter() {
+  // Always recreate if env changes or transporter is null
+  const smtpUser = env.SMTP_EMAIL;
+  const smtpPass = env.SMTP_APP_PASSWORD;
+
+  // Don't attempt to create transporter if credentials are missing or placeholder
+  if (!smtpUser || !smtpPass || smtpUser === 'asdaiso@gmail.com' || smtpPass === 'hzhdresd') {
+    console.warn('[email] SMTP credentials are not configured. Set SMTP_EMAIL and SMTP_APP_PASSWORD on Render.');
+    return null;
+  }
+
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: env.SMTP_SERVER || 'smtp.gmail.com',
-      port: env.SMTP_PORT || 587,
+      port: Number(env.SMTP_PORT) || 587,
       secure: Number(env.SMTP_PORT) === 465,
       auth: {
-        user: env.SMTP_EMAIL || 'asdaiso@gmail.com',
-        pass: env.SMTP_APP_PASSWORD || 'hzhdresd',
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
@@ -30,8 +43,13 @@ export const emailService = {
     console.log(`TIMESTAMP: ${new Date().toISOString()}`);
     console.log(`=============================================================\n`);
 
+    const mailer = getTransporter();
+    if (!mailer) {
+      console.warn(`[SMTP SKIPPED] Email not sent to ${to} — SMTP not configured (set SMTP_EMAIL + SMTP_APP_PASSWORD env vars on Render).`);
+      return { success: false, error: 'SMTP not configured', to, subject };
+    }
+
     try {
-      const mailer = getTransporter();
       const info = await mailer.sendMail({
         from: `"ClinixConnect Healthcare" <${env.SMTP_EMAIL}>`,
         to,
@@ -48,6 +66,10 @@ export const emailService = {
       };
     } catch (err) {
       console.error(`[SMTP ERROR] Failed to deliver email to ${to}:`, err.message);
+      // Reset transporter on auth failure so it gets recreated next time
+      if (err.code === 'EAUTH' || err.responseCode === 535) {
+        transporter = null;
+      }
       return {
         success: false,
         error: err.message,

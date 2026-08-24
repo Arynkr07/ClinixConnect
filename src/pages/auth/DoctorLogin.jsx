@@ -174,7 +174,7 @@ export default function DoctorLogin() {
           </Link>
         </p>
         <p className="text-on-surface-variant">
-          Demo login: <span className="font-bold text-primary">doctor@clinixconnect.org</span> (pass: any 8+ chars)
+          Demo login: <span className="font-bold text-primary">doctor@clinixconnect.org</span> / <span className="font-bold text-primary">doctor@123</span>
         </p>
       </div>
     </AuthLayout>

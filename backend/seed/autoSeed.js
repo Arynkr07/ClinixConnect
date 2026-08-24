@@ -4,19 +4,21 @@ export async function ensureDefaultUsers() {
   try {
     // 1. Admin
     const adminEmail = 'admin@clinixconnect.org';
-    const adminExists = await User.findOne({ email: adminEmail });
-    if (!adminExists) {
-      await User.create({
-        role: 'admin',
-        name: 'Admin Miller',
-        email: adminEmail,
-        password: 'admin12345',
-        phone: '+91-9999900001',
-        isApproved: true,
-        isMainAdmin: true,
-      });
-      console.log('[autoSeed] Created default Main Admin (admin@clinixconnect.org)');
-    }
+    await User.findOneAndUpdate(
+      { email: adminEmail },
+      {
+        $setOnInsert: {
+          role: 'admin',
+          name: 'Admin Miller',
+          email: adminEmail,
+          password: 'admin12345',
+          phone: '+91-9999900001',
+        },
+        $set: { isApproved: true, isActive: true, isMainAdmin: true },
+      },
+      { upsert: true, new: true }
+    );
+    console.log('[autoSeed] Default Main Admin ensured (admin@clinixconnect.org)');
 
     // 2. Doctors Seed Array (including Dr. Kavita Nair)
     const dummyDoctors = [
@@ -88,17 +90,21 @@ export async function ensureDefaultUsers() {
     ];
 
     for (const docData of dummyDoctors) {
-      let docUser = await User.findOne({ email: docData.email });
-      if (!docUser) {
-        docUser = await User.create({
-          role: 'doctor',
-          name: docData.name,
-          email: docData.email,
-          password: docData.password,
-          phone: docData.phone,
-          isApproved: true,
-        });
-      }
+      let docUser = await User.findOneAndUpdate(
+        { email: docData.email },
+        {
+          $setOnInsert: {
+            role: 'doctor',
+            name: docData.name,
+            email: docData.email,
+            password: docData.password,
+            phone: docData.phone,
+          },
+          $set: { isApproved: true, isActive: true },
+        },
+        { upsert: true, new: true }
+      );
+
       const profileExists = await Doctor.findOne({ email: docData.email });
       if (!profileExists) {
         await Doctor.create({
@@ -173,17 +179,21 @@ export async function ensureDefaultUsers() {
     ];
 
     for (const patData of dummyPatients) {
-      let patUser = await User.findOne({ email: patData.email });
-      if (!patUser) {
-        patUser = await User.create({
-          role: 'patient',
-          name: patData.name,
-          email: patData.email,
-          password: patData.password,
-          phone: patData.phone,
-          isApproved: true,
-        });
-      }
+      const patUser = await User.findOneAndUpdate(
+        { email: patData.email },
+        {
+          $setOnInsert: {
+            role: 'patient',
+            name: patData.name,
+            email: patData.email,
+            password: patData.password,
+            phone: patData.phone,
+          },
+          $set: { isApproved: true, isActive: true },
+        },
+        { upsert: true, new: true }
+      );
+
       const patProfile = await Patient.findOne({ patientId: patData.patientId });
       if (!patProfile) {
         await Patient.create({

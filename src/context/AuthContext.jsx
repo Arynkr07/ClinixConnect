@@ -49,56 +49,40 @@ export const AuthProvider = ({ children }) => {
         return authedUser;
       }
     } catch (err) {
-      if (err.status === 403 || (err.message && err.message.toLowerCase().includes('pending approval'))) {
-        throw new Error(err.message || 'Your account is pending approval.');
+      // Always propagate real backend errors (400, 401, 403, 409, 500)
+      // Only fall back to demo if the server is completely unreachable (503)
+      if (err.status && err.status !== 503) {
+        throw new Error(err.message || 'Login failed. Please check your credentials.');
       }
 
-      // Check if user is registered in local storage and check approval status
-      let storedUserMatch = null;
-      try {
-        const storedUsers = JSON.parse(localStorage.getItem('jd_registered_users') || '[]');
-        storedUserMatch = storedUsers.find((u) => u.email === cleanEmail && u.role === role);
-      } catch {
-        /* ignore */
-      }
-
+      // Server is unreachable — allow known demo accounts to proceed offline
       const isDefaultAdmin = role === 'admin' && (cleanEmail === 'admin@clinixconnect.org' || cleanEmail === 'admin@jeevandoot.org');
-      const isDefaultDoc = role === 'doctor' && (cleanEmail === 'doctor@clinixconnect.org' || cleanEmail === 'doctor@jeevandoot.org');
+      const isDefaultDoc = role === 'doctor' && (cleanEmail === 'doctor@clinixconnect.org');
+      const isDefaultPatient = role === 'patient' && (cleanEmail === 'patient@clinixconnect.org');
+      const isDemoAccount = isDefaultAdmin || isDefaultDoc || isDefaultPatient;
 
-      const isApproved = storedUserMatch
-        ? Boolean(storedUserMatch.isApproved)
-        : (isDefaultAdmin || isDefaultDoc || role === 'patient');
-
-      if (!isApproved) {
-        if (role === 'doctor') {
-          throw new Error('Your Doctor account is pending approval by the Admin. Please wait for approval before signing in.');
-        } else if (role === 'admin') {
-          throw new Error('Your Admin account is pending approval by the Default Main Admin.');
-        }
+      if (!isDemoAccount) {
+        throw new Error('Cannot connect to the server. Please try again later.');
       }
 
-      const isDemo = cleanEmail.includes('clinixconnect') || cleanEmail.includes('jeevandoot') || cleanEmail.includes('doctor') || cleanEmail.includes('admin');
-      if (!isDemo && !storedUserMatch && (err.status === 401 || err.status === 400)) {
-        throw new Error(err.message || 'Invalid email or password.');
-      }
-
-      const computedName = storedUserMatch?.name || cleanEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-      const authedUser = {
-        id: storedUserMatch?.id || `usr-${Date.now()}`,
-        name: computedName,
+      // Offline fallback for known demo accounts only
+      const offlineUser = {
+        id: `usr-offline-${role}`,
+        name: isDefaultAdmin ? 'Admin Miller' : isDefaultDoc ? 'Dr. Rajesh Sharma' : 'Gopal Prasad',
         email: cleanEmail,
-        role: role,
+        role,
         isApproved: true,
-        isMainAdmin: isDefaultAdmin || Boolean(storedUserMatch?.isMainAdmin),
-        patientId: role === 'patient' ? (storedUserMatch?.patientId || generatePatientId(computedName)) : undefined,
-        doctorId: role === 'doctor' ? (storedUserMatch?.doctorId || `dr-${Math.floor(1 + Math.random() * 9)}`) : undefined,
-        token: `token-${role}-${Date.now()}`,
+        isMainAdmin: isDefaultAdmin,
+        patientId: role === 'patient' ? `JD-OFFLINE` : undefined,
+        doctorId: role === 'doctor' ? 'dr-1' : undefined,
+        token: `offline-token-${role}-${Date.now()}`,
         loggedInAt: new Date().toISOString(),
+        isOffline: true,
       };
 
-      setUser(authedUser);
-      localStorage.setItem('jd_user', JSON.stringify(authedUser));
-      return authedUser;
+      setUser(offlineUser);
+      localStorage.setItem('jd_user', JSON.stringify(offlineUser));
+      return offlineUser;
     }
   }, []);
 
