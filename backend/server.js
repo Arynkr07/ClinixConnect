@@ -9,13 +9,25 @@ import { serveUploads } from './middleware/upload.js';
 
 const app = express();
 
-// --- Global middleware ---
-app.use(
-  cors({
-    origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
-    credentials: true,
-  })
-);
+// --- Global CORS & Preflight middleware ---
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Echo back requesting origin to satisfy credentials: true with wildcard support
+    if (!origin) return callback(null, true);
+    const configured = (process.env.CORS_ORIGIN || '*').split(',').map((o) => o.trim());
+    if (configured.includes('*') || configured.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, origin);
+    }
+    return callback(null, origin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 if (env.IS_DEV) app.use(morgan('dev'));
