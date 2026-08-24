@@ -147,6 +147,23 @@ export default function MedicationTracker() {
     load();
   }, [user]);
 
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const raw = localStorage.getItem('jd_med_reminders_status');
+        if (raw) setTakenStatus(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('jd_med_status_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('jd_med_status_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
   const toggleDose = (id, medName) => {
     setTakenStatus((prev) => {
       const nextState = !prev[id];
@@ -156,6 +173,7 @@ export default function MedicationTracker() {
       const updated = { ...prev, [id]: nextState };
       try {
         localStorage.setItem('jd_med_reminders_status', JSON.stringify(updated));
+        window.dispatchEvent(new window.CustomEvent('jd_med_status_updated'));
       } catch {
         /* ignore */
       }

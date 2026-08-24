@@ -18,7 +18,14 @@ export default function PatientDashboard() {
   const { notify } = useNotification();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [takenDoses, setTakenDoses] = useState({});
+  const [takenDoses, setTakenDoses] = useState(() => {
+    try {
+      const raw = localStorage.getItem('jd_med_reminders_status');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const sidebarItems = patientSidebarItems(t);
 
@@ -37,16 +44,40 @@ export default function PatientDashboard() {
     load();
   }, [user]);
 
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const raw = localStorage.getItem('jd_med_reminders_status');
+        if (raw) setTakenDoses(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('jd_med_status_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('jd_med_status_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
   const upcoming = appointments.filter((a) => a.status === 'upcoming');
   const past = appointments.filter((a) => a.status === 'completed');
 
-  const handleToggleDose = (id) => {
+  const handleToggleDose = (id, medName = 'Dose') => {
     setTakenDoses((prev) => {
       const next = !prev[id];
       if (next) {
-        notify({ type: 'success', message: 'Dose marked as taken for today!' });
+        notify({ type: 'success', message: `Marked ${medName} as taken for today!` });
       }
-      return { ...prev, [id]: next };
+      const updated = { ...prev, [id]: next };
+      try {
+        localStorage.setItem('jd_med_reminders_status', JSON.stringify(updated));
+        window.dispatchEvent(new window.CustomEvent('jd_med_status_updated'));
+      } catch {
+        /* ignore */
+      }
+      return updated;
     });
   };
 
