@@ -1,8 +1,6 @@
-import mongoose from 'mongoose';
 import {
   Patient,
   Doctor,
-  Referral,
   Appointment,
 } from '../models/index.js';
 
@@ -13,7 +11,7 @@ const startOfToday = () => {
 };
 
 /**
- * Aggregates the dashboard payloads consumed by doctor and government portals.
+ * Aggregates the dashboard payloads consumed by doctor portal.
  */
 export const buildDoctorDashboard = async ({ doctorId }) => {
   const [stats, queue, upcoming] = await Promise.all([
@@ -38,24 +36,23 @@ export const buildDoctorDashboard = async ({ doctorId }) => {
   };
 };
 
-export const buildGovernmentDashboard = async ({ district }) => {
-  const [patients, doctors, referrals] = await Promise.all([
+export const buildSystemDashboard = async () => {
+  const [patients, doctors, appointments] = await Promise.all([
     Patient.countDocuments(),
     Doctor.countDocuments(),
-    Referral.countDocuments({ status: { $in: ['sent', 'accepted'] } }),
+    Appointment.countDocuments({ status: 'completed' }),
   ]);
 
   return {
-    district: district || 'Default District',
     patients,
     doctors,
-    referrals,
+    appointments,
   };
 };
 
 export const dashboardService = {
   buildDoctorDashboard,
-  buildGovernmentDashboard,
+  buildSystemDashboard,
 };
 
 export default dashboardService;
